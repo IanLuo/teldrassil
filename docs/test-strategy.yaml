@@ -1,0 +1,39 @@
+# Test Strategy: Verification Matrix
+# Format: Structured for agent parsing. Each verification entry has an id, owner, threshold, and check definition.
+
+verifications:
+  - id: "sys_integrity"
+    layer: "System Integrity"
+    owner: "micro-kernel"
+    threshold: "plugin_event_latency < 100ms"
+    metric: "plugin_event_latency_ms"
+    pass_condition: "all < 100"
+    check: "Measure round-trip time for all plugin event routes. Fail if any event exceeds 100ms."
+    sample_rate: "every_event"
+
+  - id: "quality_control"
+    layer: "Quality Control"
+    owner: "supervisor-agent"
+    threshold: "gate_pass_rate == 100%"
+    metric: "artifact_gate_pass_pct"
+    pass_condition: "100"
+    check: "Run every artifact through automated gate checks. Fail if any artifact is rejected."
+    sample_rate: "every_artifact"
+
+  - id: "security_audit"
+    layer: "Security Audit"
+    owner: "vault-service"
+    threshold: "credential_leak_count == 0"
+    metric: "credentials_in_state_logs"
+    pass_condition: "0"
+    check: "Scan State Manager logs for credential strings (keys, tokens, secrets). Fail if any found."
+    sample_rate: "continuous"
+
+  - id: "user_alignment"
+    layer: "User Alignment"
+    owner: "human-attach-mode"
+    threshold: "correction_rate_trend == declining"
+    metric: "human_correction_rate"
+    pass_condition: "slope < 0 over trailing window"
+    check: "Track human corrections per session over time. Fail if correction rate is flat or rising across trailing 10-session window."
+    sample_rate: "per_session"
