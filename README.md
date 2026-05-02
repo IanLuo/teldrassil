@@ -15,73 +15,33 @@ Teldrassil is built for hybrid deployment (Local CLI + Cloud Native). The core a
 
 ## System Architecture
 
-The following diagram illustrates the flow of data, boundaries between Pointer (State) and Payload (Memory), and the "Immutable Core" of vital plugins.
+The framework is divided into distinct layers that decouple infrastructure from execution:
 
-```mermaid
-graph TB
-    subgraph User_Definition ["User Definition"]
-        Manifest[Project Manifest YAML]
-    end
+### 1. User Definition
+* **Project Manifest (YAML):** The stable contract where users define workflows, select plugins, and assign specific AI models to Worker Agents via the `use_driver` mapping.
 
-    subgraph The_Immutable_Core ["The Immutable Core"]
-        Kernel{{"Micro-Kernel\n(Lifecycle & Event Bus)"}}
-        
-        subgraph Vital_Plugins ["Vital Plugins (Required)"]
-            SM[("State Manager\n[The Ledger]\nPointers, Status, ≤4KB")]
-            ME[("Memory Engine\n[The Warehouse]\nPayloads, Vectors, URIs")]
-            Vault["Identity Vault\n[The Passport]\nJIT Token Injection"]
-            Drivers["Model Drivers\n[The Voice]\nProvider Schemas"]
-        end
-        
-        Kernel <--> SM
-        Kernel <--> ME
-        Kernel <--> Vault
-        Kernel <--> Drivers
-    end
+### 2. The Immutable Core
+The **Micro-Kernel** acts as the central event bus and lifecycle manager. It routes messages between four strictly required "Vital Plugins":
+* **State Manager (The Ledger):** Tracks the execution pointer, node status, and stores small metadata/URIs (≤4KB).
+* **Memory Engine (The Warehouse):** Stores large payloads and vector data, returning HMAC-signed URIs to ensure secure, zero-lookup access.
+* **Identity Vault (The Passport):** Manages session keys (Envelope Encryption) and securely handles Just-In-Time (JIT) token injection.
+* **Model Drivers (The Voice):** Translates generic framework requests into specific LLM provider schemas (e.g., Anthropic, OpenAI).
 
-    subgraph Extension_Plugins ["Extension Plugins"]
-        MCP["MCP Bridge\n(External Tools)"]
-        Kernel <--> MCP
-    end
+### 3. Extension Plugins
+Optional plugins that dynamically extend the framework's capabilities.
+* **MCP Bridge:** Implements the Model Context Protocol to seamlessly integrate external tools.
 
-    subgraph Orchestration_Strategies ["Orchestration & Strategies"]
-        DAG["DAG Strategy\n(Supervisor/Evaluator)"]
-        Swarm["Swarm Strategy\n(Planner)"]
-        Wildcard{"Wildcard Rule\n(Anti-Tunneling Intercept)"}
-        
-        Kernel <--> DAG
-        Kernel <--> Swarm
-        DAG --> Wildcard
-        Swarm --> Wildcard
-    end
+### 4. Orchestration & Strategies
+Defines *how* the agents work together to solve a task.
+* **DAG / Swarm Strategies:** Manage sequential pipelines (Supervisor pattern) or autonomous goal-oriented execution (Planner pattern).
+* **The Wildcard Rule:** An orchestration intercept that evaluates lists of subjective recommendations and forces an Agent rework if the output lacks diversity (preventing AI echo chambers).
 
-    subgraph Execution_Layer ["Execution Layer"]
-        Agent["Worker Agent\n(Intelligence Instance)"]
-        Human["Human-Attach Mode\n(OOB Login)"]
-        Workspace[/"Shared Workspace\n(Git / Filesystem)"/]
-        
-        Agent <-->|"Proactive Context Queries"| ME
-        Agent <-->|"Headless Work"| Workspace
-        Human <-->|"Manual Override"| Workspace
-    end
+### 5. Execution Layer
+* **Worker Agent:** The actual intelligence instance executing headless work, making proactive context queries to the Memory Engine, and triggering tool requests.
+* **Human-Attach Mode:** Allows a human to safely override, authenticate (via OOB login), or complete tasks manually.
+* **Shared Workspace:** The local Git repository or filesystem where both Headless Agents and Humans collaborate.
 
-    %% Data Flow & Dependencies (Corrected Paths)
-    
-    %% Provider-Instance Pattern
-    Manifest -. "Capabilities" .-> Drivers
-    Manifest -. "use_driver" .-> Agent
-    Drivers -. "Translates Instance logic" .-> Agent
-
-    %% Pointer vs Payload Boundary
-    Agent -->|"1. Raw Data"| ME
-    ME -. "2. Returns unique_uri" .-> Agent
-    Agent -->|"3. Logs Step + URI"| SM
-
-    %% The Wildcard Rule Intercept
-    Wildcard -. "Triggers Rework if\nDiversity < Threshold" .-> Agent
-
-    %% Security & Tool Execution Flow
-    Agent -->|"Tool Request"| MCP
-    Vault -. "Injects Token (JIT)" .-> MCP
-    Human -. "OOB Auth Escalation" .-> Vault
-```
+### Key Data Flows
+* **Provider-Instance Pattern:** The Manifest maps capabilities to specific Drivers. The Drivers translate the Agent's logic into external API calls.
+* **Pointer-Payload Boundary:** A Worker Agent writes raw data directly to the *Memory Engine*. It receives a `unique_uri` back, which it logs as a trace step in the *State Manager*.
+* **JIT Security:** When a Worker Agent requests a tool via the *MCP Bridge*, the *Identity Vault* intercepts the request and securely injects the required token at the transport layer.
