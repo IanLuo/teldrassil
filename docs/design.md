@@ -5,6 +5,8 @@ Current agentic frameworks are often monolithic, coupling the orchestration logi
 
 This framework solves these issues by adopting a **Micro-Kernel Architecture** that decouples infrastructure (Plugins) from execution logic (Orchestrators) and task definitions (Project Manifests).
 
+> For detailed component-level specifications (interfaces, data structures, pipelines), see [Detailed Component Design](detailed-components.md).
+
 ---
 
 ## 2. Core Architecture: The Micro-Kernel ("The Bus")
@@ -82,6 +84,14 @@ To keep the orchestrator lean and the storage scalable, **State Manager** and **
 | Artifact Creation | Stores `{ "type": "artifact", "ref": "mem://search_results_v1" }`. | Persists the string and returns the URI. |
 | Supervisor Check | Reads the status and reference URI. | Provides the full content when requested. |
 | Human Attach | Loads last valid URI — tells the human *where* to look. | Pulls source code/files from workspace so the human sees the *payload*. |
+
+### 2.4 Memory Security: High-Performance Isolation
+
+To protect sensitive domain data (Artifacts) without introducing encryption bottlenecks into the orchestrator's event loop, the framework relies on session-scoped envelope encryption and signed URIs.
+
+*   **Envelope Encryption (BYOK):** The framework reads a Master Key from `.env`. When a new session starts, the Vault generates a symmetric Data Encryption Key (DEK) encrypted by the Master Key. The Memory Engine uses this DEK for fast, local AES-256-GCM stream encryption. Destroying the session DEK in the Vault instantly crypto-shreds the entire project memory.
+*   **Zero-Lookup Auth (Signed URIs):** To prevent agents from guessing memory paths (`mem://*`), the Memory Engine issues HMAC-signed URIs (e.g., `mem://v1/data?sig=...`). Agents can only access data if the Orchestrator hands them a valid, signed pointer.
+*   **Physical Isolation:** The Memory Engine enforces strict path prefixing (`/.teldrassil/memory/<session_id>/`) to prevent lateral directory traversal.
 
 ---
 
