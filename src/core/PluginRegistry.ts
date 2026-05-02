@@ -39,4 +39,8 @@ export class PluginRegistry {
       this.plugins.delete(name);
     }
   }
+
+  public getAllPlugins(): Map<string, Plugin> {
+    return new Map(this.plugins);
+  }
 }

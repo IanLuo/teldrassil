@@ -1,26 +1,22 @@
-# Teldrassil - Session Memory
+# Teldrassil - Lessons Learned
 
-This file records gotchas, workarounds, design decisions, and lessons learned during development. Updated after EVERY completed task.
+This file captures gotchas, design decisions, and reusable patterns. Only write to it when something meaningful is discovered — it is NOT a task completion log. Task status lives in `docs/tasks/plan.md`.
+
+This file is loaded into every session via `opencode.json` instructions, so keep it lean and high-signal.
 
 ---
 
 ## Conventions
-- Each entry starts with `## [Task ID] - [Summary] - [Date]`
-- Entries are chronological (newest at top)
-- Sub-sections: `### What was done`, `### Gotchas / Lessons Learned`, `### Follow-up Tasks`
+- Each entry: `## [Topic] - [Date]`
+- Only include: gotchas, design decisions, patterns, or pitfalls
+- Delete stale entries once the lesson is internalized or the codebase changes
+- Max 50 lines total — prune aggressively
 
-## 2.5 - BootstrapSequence TDD & Implementation - 2026-05-02
+## Vitest gotchas - 2026-05-02
+- `toThrow('string')` checks error message, not error class. Use `toThrow(SystemExit)` for type checks.
+- `toHaveBeenCalledBefore` is not available in Vitest. Use mock-driven call-order tracking instead.
 
-### What was done
-- Created `SystemExit` error class (`src/core/SystemExit.ts`) for kernel bootstrap failures.
-- Extended `Plugin` interface with optional `ping(): Promise<boolean>` for health checks.
-- Wrote 7 tests for `BootstrapSequence` covering: all-four-present, missing-one, missing-multiple, ping-all, ping-failure, no-ping-implementation, all-absent.
-- Implemented `BootstrapSequence` with `VITAL_PLUGINS` constant (`State`, `Memory`, `Vault`, `Driver`) that validates registration and health in order.
-
-### Gotchas / Lessons Learned
-- `toThrow('string')` checks the error message, not the error class. Use `toThrow(SystemExit)` to verify the error type.
-- Had to set up `pnpm` via Homebrew's Node.js (`/opt/homebrew/bin/node`) since nix-shell was timing out.
-- The `ping()` method is optional on the `Plugin` interface; BootstrapSequence checks for its presence and calls it.
-
-### Follow-up Tasks
-- 2.6: Implement `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
+## MicroKernel patterns - 2026-05-02
+- `swap()` normalizes plugin name to vital slot name (e.g., `AzureVault` → `Vault`) so BootstrapSequence can find it.
+- `swap()` only accepts vital slot names — extension plugins use `detach()` + `register()`.
+- `ping()` is optional on the Plugin interface; BootstrapSequence checks for its presence.

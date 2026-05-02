@@ -11,6 +11,7 @@ You MUST follow these steps IN ORDER for EVERY task. Each step has a required ou
 
 ### Step 1: Initialize & Plan
 - Read `docs/tasks/plan.md` and identify the next `[ ]` task.
+- Read `docs/memory.md` for relevant past lessons.
 - Edit `docs/tasks/plan.md`: change `[ ]` to `[⏳]` (In Progress).
 - Output a step-by-step execution plan BEFORE writing any code or running commands:
   ```
@@ -44,17 +45,10 @@ You MUST follow these steps IN ORDER for EVERY task. Each step has a required ou
 
 ### Step 5: Persist State
 - Edit `docs/tasks/plan.md`: change `[⏳]` to `[x]` (Completed).
-- Append to `docs/memory.md`:
+- If meaningful lessons were learned (gotchas, new patterns, design decisions), append to `docs/memory.md`:
   ```
-  ## [Task ID] - [Summary] - [Date]
-  
-  ### What was done
-  - Brief summary
-  
-  ### Gotchas / Lessons Learned
-  - Issues encountered and how resolved
-  
-  ### Follow-up Tasks
-  - New tasks discovered (also add to plan.md)
+  ## [Topic] - [Date]
+  - One-line lesson
   ```
-- **DENY:** Task is NOT complete until both `plan.md` and `memory.md` are updated.
+- **Skip memory.md** if the task was routine with nothing new to record. plan.md `[x]` is sufficient for task completion tracking.
+- **DENY:** Task is NOT complete until `plan.md` is updated. Memory is optional — only write lessons worth future sessions knowing.

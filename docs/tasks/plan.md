@@ -3,6 +3,8 @@
 This document contains the detailed breakdown of all tasks required to build Teldrassil. Each phase is broken down into specific, actionable, and testable steps.
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
+> 
+> **Current State:** Phase 1 (Environment & Tooling) complete. Phase 2 (Micro-Kernel): EventBus + PluginRegistry complete (2.1-2.4). BootstrapSequence + MicroKernel pending (2.5-2.6). Phases 3-6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -17,7 +19,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 2.3 **TDD:** Write tests for `EventDispatcher`. It must support pub/sub and wildcard event listening.
 * [x] 2.4 **Build:** Implement `EventDispatcher` (as `EventBus`).
 * [x] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly four vital interfaces (`State`, `Memory`, `Vault`, `Driver`) are present, ping them, and throw `SystemExit` if missing.
-* [ ] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
+* [x] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
 
 ## Phase 3: Vital Interfaces & Contracts
 * [ ] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept <=4KB payloads and URIs).

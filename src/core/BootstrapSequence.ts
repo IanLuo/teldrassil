@@ -1,7 +1,7 @@
 import { PluginRegistry } from './PluginRegistry';
 import { SystemExit } from './SystemExit';
 
-const VITAL_PLUGINS = ['State', 'Memory', 'Vault', 'Driver'] as const;
+export const VITAL_PLUGINS = ['State', 'Memory', 'Vault', 'Driver'] as const;
 
 export class BootstrapSequence {
   private registry: PluginRegistry;

@@ -1,9 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": [
-    "docs/design.md",
-    "docs/detailed-components.md"
-  ],
   "agent": {
     "build": {
       "permission": {
