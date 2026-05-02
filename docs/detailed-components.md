@@ -82,12 +82,20 @@ For "Human-Attach" mode, the Memory Engine ensures the local filesystem (e.g., t
 
 ## 4. Identity Vault (The Passport Office)
 
-The Vault manages sensitive credentials without exposing them to the "Worker" agents. It is initialized by reading a Master Key from the `.env` file.
+The Vault manages sensitive credentials without exposing them to the "Worker" agents. It is initialized by reading a Master Key from the `.env` file or connecting to a Cloud KMS.
 
 ### 4.1 Key & Credential Scoping
 
 - **Session Keys:** Generates and holds the symmetric Data Encryption Key (DEK) for the Memory Engine.
 - **Tool Secrets:** Maps `Tool_ID` or `Domain` to a specific secret.
+
+### 4.2 Key Management & Recovery (Anti-Data Loss)
+
+To prevent catastrophic memory loss if a local `.env` file is deleted or a key is rotated, the Vault implements the following safeguards:
+
+1. **Key Derivation:** If using a local `.env` string, the Vault uses PBKDF2 or Argon2 to derive a cryptographically strong Master Key, rather than using the string directly.
+2. **Key Escrow (Double Encryption):** When a session DEK is generated, the Vault encrypts it twice: once with the primary runtime Master Key, and once with an optional offline Recovery Key. If the primary key is lost, the DEK can be recovered and re-encrypted.
+3. **KMS Delegation:** In cloud deployments, the Vault delegates DEK encryption to a KMS (AWS, GCP, HashiCorp). The Master Key never touches the Node.js memory space.
 
 ### 4.2 Injection Pipeline
 
