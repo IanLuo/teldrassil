@@ -16,8 +16,8 @@
           buildInputs = with pkgs; [
             nodejs_20
             pnpm_9
-            nodePackages.typescript-language-server
-            nodePackages.prettier
+            typescript-language-server
+            prettierd
           ];
 
           shellHook = ''

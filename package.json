@@ -1,0 +1,25 @@
+{
+  "name": "teldrassil",
+  "version": "0.1.0",
+  "description": "Modular Agentic Micro-Kernel Framework",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0",
+    "tsx": "^4.7.0"
+  },
+  "keywords": [
+    "agent",
+    "micro-kernel",
+    "framework"
+  ],
+  "author": "",
+  "license": "ISC"
+}

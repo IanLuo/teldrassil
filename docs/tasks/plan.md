@@ -1,26 +1,26 @@
 # Teldrassil Action Plan
 
-This document contains the detailed breakdown of all tasks required to build Teldrassil. Each phase is broken down into specific, actionable, and testable steps. 
+This document contains the detailed breakdown of all tasks required to build Teldrassil. Each phase is broken down into specific, actionable, and testable steps.
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 
-## Phase 1: Environment & Tooling (Current)
-* [ ] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
-* [ ] 1.2 Create `personas` skill folder and `SKILL.md` defining Developer, Tester, Document Maintainer, and Reviewer mindsets.
-* [ ] 1.3 Initialize `flake.nix` with Node.js 20, pnpm, and typescript language servers. Configure `direnv`.
-* [⏳] 1.4 Scaffold the `pnpm` workspace (monorepo root `package.json`, `packages/core`, `packages/ui`).
-* [⏳] 1.5 Setup testing framework (Vitest/Jest) and TypeScript configuration (`tsconfig.base.json`).
+## Phase 1: Environment & Tooling
+* [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
+* [x] 1.2 Create `personas` skill folder and `SKILL.md` defining Developer, Tester, Document Maintainer, and Reviewer mindsets.
+* [x] 1.3 Initialize `flake.nix` with Node.js 20, pnpm, and typescript language servers. Configure `direnv`.
+* [x] 1.4 Scaffold basic project structure (`package.json`, `tsconfig.json`, `src/`, `tests/`).
+* [x] 1.5 Setup testing framework (Vitest) and TypeScript configuration.
 
 ## Phase 2: The Micro-Kernel (Core Bus)
-* [ ] 2.1 **TDD:** Write tests for `PluginRegistry`. It must map strings to class instances and throw on duplicate registrations.
-* [ ] 2.2 **Build:** Implement `PluginRegistry`.
-* [ ] 2.3 **TDD:** Write tests for `EventDispatcher`. It must support pub/sub and wildcard event listening.
-* [ ] 2.4 **Build:** Implement `EventDispatcher`.
-* [ ] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly four vital interfaces (`State`, `Memory`, `Vault`, `Driver`) are present, ping them, and throw `SystemExit` if missing.
+* [x] 2.1 **TDD:** Write tests for `PluginRegistry`. It must map strings to class instances and throw on duplicate registrations.
+* [x] 2.2 **Build:** Implement `PluginRegistry`.
+* [x] 2.3 **TDD:** Write tests for `EventDispatcher`. It must support pub/sub and wildcard event listening.
+* [x] 2.4 **Build:** Implement `EventDispatcher` (as `EventBus`).
+* [x] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly four vital interfaces (`State`, `Memory`, `Vault`, `Driver`) are present, ping them, and throw `SystemExit` if missing.
 * [ ] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
 
 ## Phase 3: Vital Interfaces & Contracts
-* [ ] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept ≤4KB payloads and URIs).
+* [ ] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept <=4KB payloads and URIs).
 * [ ] 3.2 **Build:** Define TypeScript `interface` for `IMemoryEngine` (must return `MemoryURI` and enforce signature validation).
 * [ ] 3.3 **Build:** Define TypeScript `interface` for `IVault` (must support DEK generation and Secret retrieval).
 * [ ] 3.4 **Build:** Define TypeScript `interface` for `IModelDriver` (must handle schema translation).
