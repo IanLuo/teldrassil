@@ -8,8 +8,8 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [ ] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
 * [ ] 1.2 Create `personas` skill folder and `SKILL.md` defining Developer, Tester, Document Maintainer, and Reviewer mindsets.
 * [ ] 1.3 Initialize `flake.nix` with Node.js 20, pnpm, and typescript language servers. Configure `direnv`.
-* [ ] 1.4 Scaffold the `pnpm` workspace (monorepo root `package.json`, `packages/core`, `packages/ui`).
-* [ ] 1.5 Setup testing framework (Vitest/Jest) and TypeScript configuration (`tsconfig.base.json`).
+* [⏳] 1.4 Scaffold the `pnpm` workspace (monorepo root `package.json`, `packages/core`, `packages/ui`).
+* [⏳] 1.5 Setup testing framework (Vitest/Jest) and TypeScript configuration (`tsconfig.base.json`).
 
 ## Phase 2: The Micro-Kernel (Core Bus)
 * [ ] 2.1 **TDD:** Write tests for `PluginRegistry`. It must map strings to class instances and throw on duplicate registrations.

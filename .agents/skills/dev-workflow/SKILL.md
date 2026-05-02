@@ -7,10 +7,11 @@ Enforces a strict, 5-step development loop for the Teldrassil project: Status ch
 
 When developing in this repository, you **must** follow these steps in order for every task, actively switching your mindset to the appropriate **Persona** (defined in the `personas` skill) for each step:
 
-1. **Get Task & Update Status (Initialization) -> Adopt `Document Maintainer` Persona:**
+1. **Get Task, Plan, & Update Status (Initialization) -> Adopt `Document Maintainer` Persona:**
    - Read the current task list (`docs/tasks/plan.md`).
    - Identify the next available task.
    - *Crucial:* Edit `docs/tasks/plan.md` to change the task status from `[ ]` to `[⏳]` (In Progress) before starting work.
+   - *Crucial:* Explicitly write out a step-by-step execution plan for the specific task before running any commands.
    - Do not start writing code blindly.
 
 2. **Check Design (Alignment) -> Adopt `Developer` Persona:**
