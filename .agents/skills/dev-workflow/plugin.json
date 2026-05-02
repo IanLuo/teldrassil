@@ -1,0 +1,4 @@
+{
+  "name": "dev-workflow",
+  "description": "Enforces a strict, 5-step development loop for the Teldrassil project: Status check, Design alignment, TDD execution, Code Review, and Memory update. Use this when starting any new feature or task to ensure architectural consistency and test coverage."
+}

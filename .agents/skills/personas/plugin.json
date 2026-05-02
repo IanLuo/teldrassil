@@ -1,0 +1,4 @@
+{
+  "name": "personas",
+  "description": "Defines the four core mindsets required for developing Teldrassil: Developer, Tester, Document Maintainer, and Reviewer. Use this to adopt the correct perspective depending on the current phase of the dev-workflow."
+}
