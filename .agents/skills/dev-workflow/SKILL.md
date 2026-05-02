@@ -7,8 +7,10 @@ Enforces a strict, 5-step development loop for the Teldrassil project: Status ch
 
 When developing in this repository, you **must** follow these steps in order for every task:
 
-1. **Check Memory (Status):**
-   - Read the current task list (`docs/tasks/plan.md`) and any active session logs to understand the immediate context.
+1. **Get Task & Update Status (Initialization):**
+   - Read the current task list (`docs/tasks/plan.md`).
+   - Identify the next available task.
+   - *Crucial:* Edit `docs/tasks/plan.md` to change the task status from `[ ]` to `[⏳]` (In Progress) before starting work.
    - Do not start writing code blindly.
 
 2. **Check Design (Alignment):**
@@ -26,6 +28,7 @@ When developing in this repository, you **must** follow these steps in order for
    - Consider edge cases, security implications (e.g., credentials logging), and error handling.
    - *Never invent requirements.* If a detail is ambiguous, ask the user.
 
-5. **Update Memory (Persistence):**
-   - Update `docs/tasks/plan.md` to check off completed items.
+5. **Update Tasks & Memory (Persistence):**
+   - Edit `docs/tasks/plan.md` to change the task status from `[⏳]` to `[x]` (Completed).
+   - If a new sub-task was discovered, add it to the plan.
    - Document any gotchas, workarounds, or lessons learned during the implementation.
