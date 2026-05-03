@@ -167,7 +167,7 @@ This avoids the conflict where an agent tries to use a model whose driver was ne
 
 ```yaml
 project_id: "research_and_code_v1"
-workflow: "DAG"
+workflow: "supervised"
 
 plugins:
   # Vital plugins (system_critical — removal causes SystemExit)
