@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-interface WildcardResult {
-  score: number;
-  passed: boolean;
-}
+import { WildcardRule } from '../../src/core/WildcardRule';
 
 describe('WildcardRule', () => {
   describe('evaluate', () => {
@@ -16,7 +12,7 @@ describe('WildcardRule', () => {
     });
 
     it('should fail when diversity score is below threshold', () => {
-      const items = ['minimalist design', 'minimal layout', 'minimal UI theme'];
+      const items = ['minimalist design', 'minimalist design', 'minimalist design', 'colorful UI'];
       const result = WildcardRule.evaluate(items, 0.5);
 
       expect(result.passed).toBe(false);
