@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phases 1-5 complete. Phase 6 in progress (6.1-6.3 done, 6.4 remaining).
+> **Current State:** ALL PHASES COMPLETE. 🎉
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -47,4 +47,4 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 6.1 Scaffold Next.js frontend in `packages/ui`.
 * [x] 6.2 Implement Zustand/Jotai store to mirror the `State Manager`'s DAG position.
 * [x] 6.3 Build the visualization component (e.g., React Flow) to render the active workflow.
-* [ ] 6.4 Build the "Human-Attach" override modal triggered by a `HUMAN_REQUIRED` kernel event.
+* [x] 6.4 Build the "Human-Attach" override modal triggered by a `HUMAN_REQUIRED` kernel event.
