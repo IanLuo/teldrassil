@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phase 1-2 complete. Phase 3 in progress (3.1-3.4 done, 3.5 remaining). Phases 4-6 not started.
+> **Current State:** Phases 1-3 complete. Phases 4-6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -26,7 +26,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 3.2 **Build:** Define TypeScript `interface` for `IMemoryEngine` (must return `MemoryURI` and enforce signature validation).
 * [x] 3.3 **Build:** Define TypeScript `interface` for `IVault` (must support DEK generation and Secret retrieval).
 * [x] 3.4 **Build:** Define TypeScript `interface` for `IModelDriver` (must handle schema translation).
-* [ ] 3.5 **TDD/Build:** Create simple `InMemoryMock` classes for all four vital plugins to pass the kernel bootstrap tests.
+* [x] 3.5 **TDD/Build:** Create simple `InMemoryMock` classes for all four vital plugins to pass the kernel bootstrap tests.
 
 ## Phase 4: Orchestration & Workflow Logic
 * [ ] 4.1 **TDD/Build:** Create the `ManifestParser` with Zod to validate `system_config.yaml` against the Provider-Instance pattern mapping (`use_driver` -> `model`).
