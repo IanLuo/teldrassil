@@ -38,7 +38,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 ## Phase 5: The Execution Layer & Security
 * [x] 5.1 **TDD/Build:** Implement `EnvVaultPlugin` that derives a Master Key from `.env` using PBKDF2 and securely generates session DEKs.
 * [x] 5.2 **TDD/Build:** Implement `LocalMemoryPlugin` that uses the Vault DEK to AES-256-GCM encrypt files written to `/.teldrassil/memory/` and returns HMAC-signed URIs.
-* [ ] 5.3 **TDD/Build:** Implement `PostgresStatePlugin` (or SQLite for local dev) that records execution traces.
+* [x] 5.3 **TDD/Build:** Implement `PostgresStatePlugin` (or SQLite for local dev) that records execution traces.
 * [ ] 5.4 **Build:** Implement `AnthropicDriver` integrating the official Anthropic SDK and translating framework messages to Claude schemas.
 
 ## Phase 6: Managing UI
