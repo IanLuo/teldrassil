@@ -7,12 +7,9 @@ description: Enforces a strict 6-step development loop for Teldrassil: plan, des
 
 ## CRITICAL: 6-Step Development Loop
 
-You MUST follow these steps IN ORDER for EVERY task — code, docs, design proposals, configuration changes. Each step has a required output. Skip NONE.
+This workflow applies ONLY to development tasks: code implementation, bug fixes, configuration changes. You MUST follow these steps IN ORDER for every dev task. Each step has a required output. Skip NONE.
 
-**Task type adjustments:**
-- **Code tasks** → Full TDD cycle in Step 3 (write tests, red, green)
-- **Docs/design tasks** → Skip TDD in Step 3; instead write the document, then review against existing docs for consistency
-- **Investigation tasks** → Skip TDD; research, write findings, then review for completeness
+**Non-dev tasks** (design proposals, architecture discussions, documentation, investigation) are collaborative — discuss freely with the user, propose drafts, and let the user decide when done. Do NOT apply this workflow to non-dev tasks. When unsure whether a task qualifies, ASK the user.
 
 ### Step 1: Initialize & Plan
 - Read `docs/tasks/plan.md` and identify the next `[ ]` task.
