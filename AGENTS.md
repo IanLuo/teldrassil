@@ -3,7 +3,9 @@
 Teldrassil is a Modular Agentic Micro-Kernel Framework — a "Reliable OS for Agents" that prevents future-lock by acting as a lightweight, protocol-agnostic message bus.
 
 ## Core Rule
-Load the `dev-workflow` skill for development tasks (code, bug fixes, config). For design proposals, architecture discussions, or documentation, collaborate freely with the user — no workflow, no automatic commits. Dev tasks are tracked in `docs/tasks/plan.md`. Other skills load automatically based on their descriptions.
+Load the `dev-workflow` skill for development tasks (code, bug fixes, config). Dev tasks are tracked in `docs/tasks/plan.md`. Other skills load automatically based on their descriptions.
+
+For harness/doc changes (skills, agents, commands, AGENTS.md, design docs): propose changes to the user first. Only commit after explicit approval. No [⏳]/[x] tracking needed.
 
 ## Architecture Boundaries
 - **Kernel** = message bus only. No domain logic.
