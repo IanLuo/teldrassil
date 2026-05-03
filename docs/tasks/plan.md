@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phases 1-4 complete. Phases 5-6 not started.
+> **Current State:** Phases 1-4 complete. Phase 5 in progress (5.1 done). Phase 6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -36,7 +36,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 4.5 **Build:** Implement `WildcardRule` interceptor and integrate it into the Supervisor logic.
 
 ## Phase 5: The Execution Layer & Security
-* [ ] 5.1 **TDD/Build:** Implement `EnvVaultPlugin` that derives a Master Key from `.env` using PBKDF2 and securely generates session DEKs.
+* [x] 5.1 **TDD/Build:** Implement `EnvVaultPlugin` that derives a Master Key from `.env` using PBKDF2 and securely generates session DEKs.
 * [ ] 5.2 **TDD/Build:** Implement `LocalMemoryPlugin` that uses the Vault DEK to AES-256-GCM encrypt files written to `/.teldrassil/memory/` and returns HMAC-signed URIs.
 * [ ] 5.3 **TDD/Build:** Implement `PostgresStatePlugin` (or SQLite for local dev) that records execution traces.
 * [ ] 5.4 **Build:** Implement `AnthropicDriver` integrating the official Anthropic SDK and translating framework messages to Claude schemas.
