@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phases 1-3 complete. Phase 4 in progress (4.1 done). Phases 5-6 not started.
+> **Current State:** Phases 1-4 complete. Phases 5-6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -32,8 +32,8 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 4.1 **TDD/Build:** Create the `ManifestParser` with Zod to validate `system_config.yaml` against the Provider-Instance pattern mapping (`use_driver` -> `model`).
 * [x] 4.2 **TDD:** Write tests for the `Supervisor` node. It must intercept outputs and apply a pass/fail Quality Gate based on a mock criteria list.
 * [x] 4.3 **Build:** Implement `Supervisor` Quality Gate.
-* [ ] 4.4 **TDD:** Write tests for the `WildcardRule`. It must take an array of strings, calculate a mock diversity score, and throw a Rework error if below threshold.
-* [ ] 4.5 **Build:** Implement `WildcardRule` interceptor and integrate it into the Supervisor logic.
+* [x] 4.4 **TDD:** Write tests for the `WildcardRule`. It must take an array of strings, calculate a mock diversity score, and throw a Rework error if below threshold.
+* [x] 4.5 **Build:** Implement `WildcardRule` interceptor and integrate it into the Supervisor logic.
 
 ## Phase 5: The Execution Layer & Security
 * [ ] 5.1 **TDD/Build:** Implement `EnvVaultPlugin` that derives a Master Key from `.env` using PBKDF2 and securely generates session DEKs.
