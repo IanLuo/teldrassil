@@ -12,6 +12,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 1.3 Initialize `flake.nix` with Node.js 20, pnpm, and typescript language servers. Configure `direnv`.
 * [x] 1.4 Scaffold basic project structure (`package.json`, `tsconfig.json`, `src/`, `tests/`).
 * [x] 1.5 Setup testing framework (Vitest) and TypeScript configuration.
+* [x] 1.6 Design persona-agent architecture — 6 specialized subagents with permission scoping, context handoff protocol, and 4-phase migration path (see `docs/persona-agents-design.md`).
 
 ## Phase 2: The Micro-Kernel (Core Bus)
 * [x] 2.1 **TDD:** Write tests for `PluginRegistry`. It must map strings to class instances and throw on duplicate registrations.
