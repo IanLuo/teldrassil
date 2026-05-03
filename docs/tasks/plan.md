@@ -30,8 +30,8 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 ## Phase 4: Orchestration & Workflow Logic
 * [x] 4.1 **TDD/Build:** Create the `ManifestParser` with Zod to validate `system_config.yaml` against the Provider-Instance pattern mapping (`use_driver` -> `model`).
-* [ ] 4.2 **TDD:** Write tests for the `Supervisor` node. It must intercept outputs and apply a pass/fail Quality Gate based on a mock criteria list.
-* [ ] 4.3 **Build:** Implement `Supervisor` Quality Gate.
+* [x] 4.2 **TDD:** Write tests for the `Supervisor` node. It must intercept outputs and apply a pass/fail Quality Gate based on a mock criteria list.
+* [x] 4.3 **Build:** Implement `Supervisor` Quality Gate.
 * [ ] 4.4 **TDD:** Write tests for the `WildcardRule`. It must take an array of strings, calculate a mock diversity score, and throw a Rework error if below threshold.
 * [ ] 4.5 **Build:** Implement `WildcardRule` interceptor and integrate it into the Supervisor logic.
 
