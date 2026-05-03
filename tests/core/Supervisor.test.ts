@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-enum SupervisorDecision {
-  PROCEED = 'PROCEED',
-  REWORK = 'REWORK',
-  ESCALATE = 'ESCALATE',
-}
+import { Supervisor, SupervisorDecision } from '../../src/core/Supervisor';
 
 interface SupervisorInput {
   output: string;
@@ -57,7 +52,7 @@ describe('Supervisor — Quality Gate', () => {
 
     it('should return REWORK when output fails any of multiple criteria', () => {
       const input: SupervisorInput = {
-        output: '```ts\nhi\n```',
+        output: 'abcde', // passes length (5 >= 5) but fails containCode
         retryCount: 0,
         maxRetries: 3,
         criteria: [passLength, containCode],
