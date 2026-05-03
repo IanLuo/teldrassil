@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phase 1 complete (1.4 monorepo scaffold done). Phase 2 extended (2.7-2.8 pending). Phases 3-5 complete. Phase 6 not started.
+> **Current State:** Phases 1-5 complete. Phase 6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -21,7 +21,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly four vital interfaces (`State`, `Memory`, `Vault`, `Driver`) are present, ping them, and throw `SystemExit` if missing.
 * [x] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
 * [x] 2.7 **Integration:** Write end-to-end test bootstrapping MicroKernel with all four vital plugins (`EnvVaultPlugin`, `LocalMemoryPlugin`, `LocalStatePlugin`, `AnthropicDriver`) and verifying full lifecycle (bootstrap → ping → shutdown).
-* [ ] 2.8 **Build:** Implement CLI entry point (`src/index.ts`) that loads kernel, registers vital plugins, runs bootstrap, and reports status.
+* [x] 2.8 **Build:** Implement CLI entry point (`src/index.ts`) that loads kernel, registers vital plugins, runs bootstrap, and reports status.
 
 ## Phase 3: Vital Interfaces & Contracts
 * [x] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept <=4KB payloads and URIs).
