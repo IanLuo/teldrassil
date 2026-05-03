@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "description": "Modular Agentic Micro-Kernel Framework",
   "main": "dist/index.js",
+  "bin": {
+    "teldrassil": "dist/index.js"
+  },
   "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
