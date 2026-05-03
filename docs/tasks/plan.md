@@ -20,7 +20,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 2.4 **Build:** Implement `EventDispatcher` (as `EventBus`).
 * [x] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly four vital interfaces (`State`, `Memory`, `Vault`, `Driver`) are present, ping them, and throw `SystemExit` if missing.
 * [x] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
-* [ ] 2.7 **Integration:** Write end-to-end test bootstrapping MicroKernel with all four vital plugins (`EnvVaultPlugin`, `LocalMemoryPlugin`, `LocalStatePlugin`, `AnthropicDriver`) and verifying full lifecycle (bootstrap → ping → shutdown).
+* [x] 2.7 **Integration:** Write end-to-end test bootstrapping MicroKernel with all four vital plugins (`EnvVaultPlugin`, `LocalMemoryPlugin`, `LocalStatePlugin`, `AnthropicDriver`) and verifying full lifecycle (bootstrap → ping → shutdown).
 * [ ] 2.8 **Build:** Implement CLI entry point (`src/index.ts`) that loads kernel, registers vital plugins, runs bootstrap, and reports status.
 
 ## Phase 3: Vital Interfaces & Contracts
