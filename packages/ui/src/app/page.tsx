@@ -8,8 +8,13 @@ const WorkflowVisualization = dynamic(
   { ssr: false }
 );
 
+const HumanAttachModal = dynamic(
+  () => import('../components/HumanAttachModal'),
+  { ssr: false }
+);
+
 export default function Home() {
-  const { addHistoryEntry, setSessionId } = useWorkflowStore();
+  const { addHistoryEntry, setSessionId, triggerAttachModal } = useWorkflowStore();
 
   function seedDemo() {
     setSessionId('demo-session-001');
@@ -38,13 +43,29 @@ export default function Home() {
             borderRadius: 6,
             cursor: 'pointer',
             fontWeight: 600,
+            marginRight: 8,
           }}
         >
           Run Demo Workflow
         </button>
+        <button
+          onClick={() => triggerAttachModal('evaluate')}
+          style={{
+            padding: '8px 16px',
+            background: '#f87171',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontWeight: 600,
+          }}
+        >
+          Trigger Human Attach
+        </button>
       </div>
 
       <WorkflowVisualization />
+      <HumanAttachModal />
     </main>
   );
 }

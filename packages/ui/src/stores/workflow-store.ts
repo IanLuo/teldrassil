@@ -14,16 +14,22 @@ interface WorkflowState {
   sessionId: string;
   currentNode: string;
   history: WorkflowEntry[];
+  attachModalActive: boolean;
+  attachModalNode: string;
 
   setSessionId: (id: string) => void;
   setCurrentNode: (nodeId: string) => void;
   addHistoryEntry: (entry: WorkflowEntry) => void;
+  triggerAttachModal: (nodeId: string) => void;
+  dismissAttachModal: () => void;
 }
 
 export const useWorkflowStore = create<WorkflowState>((set) => ({
   sessionId: '',
   currentNode: 'idle',
   history: [],
+  attachModalActive: false,
+  attachModalNode: '',
 
   setSessionId: (id) => set({ sessionId: id }),
   setCurrentNode: (nodeId) => set({ currentNode: nodeId }),
@@ -32,4 +38,8 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       history: [...state.history, entry],
       currentNode: entry.node_id,
     })),
+  triggerAttachModal: (nodeId) =>
+    set({ attachModalActive: true, attachModalNode: nodeId }),
+  dismissAttachModal: () =>
+    set({ attachModalActive: false, attachModalNode: '' }),
 }));
