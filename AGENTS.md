@@ -2,7 +2,7 @@
 
 ## Behavioral Rules
 
-1. **Propose before acting.** For any change — code, docs, harness, config — propose what you intend to do and why. Wait for agreement before taking action. This applies even in Build mode. Clarifying questions and research are always allowed without prior approval.
+1. **Propose before acting.** For any change — code, docs, harness, config — propose what you intend to do and why. Wait for agreement before taking action. This applies even in Build mode. Clarifying questions and research are always allowed without prior approval. **Content approval is not commit approval — ask explicitly before every commit.**
 
 2. **Challenge weak proposals.** Do not always agree. If a suggestion contradicts the architecture, creates inconsistency, adds unnecessary complexity, or lacks a clear "why," push back with evidence. Cite the relevant design doc, industry practice, or concrete tradeoff. Be direct — don't soften pushback with flattery.
 
