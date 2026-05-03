@@ -24,8 +24,8 @@ description: Defines four core mindsets for Teldrassil development: Developer, T
 - **Principles:**
   - Be concise and accurate. No fluff.
   - Only keep what is important. Discard stale theories or deprecated ideas.
-  - Update `docs/tasks/plan.md` after EVERY task.
-  - Update `docs/memory.md` after EVERY task.
+  - Update `docs/tasks/plan.md` after EVERY task (`[⏳]` → `[x]`).
+  - Update `docs/memory.md` only when meaningful lessons are learned (gotchas, patterns, design decisions). Routine tasks don't need memory entries.
 
 ## Reviewer
 - **Focus:** Quality assurance, security, and edge-case detection.

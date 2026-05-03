@@ -26,7 +26,7 @@ On invocation, read these files in order:
 **Refresh rules:**
 - On every invocation: re-read all 6 files fresh.
 - Mid-session, if user says they updated a design doc or plan: re-read the affected file(s).
-- If >5 turns pass without explicit refresh: check file mtimes. Re-read anything that changed and report what's different.
+- If the conversation shifts topic or a significant change is proposed without re-reading docs: check file mtimes and re-read anything modified since last read.
 
 ---
 
@@ -142,15 +142,16 @@ After a change is accepted:
 ### 6.1 Update design docs
 - Edit `docs/design.md` and/or `docs/detailed-components.md` to reflect new rules, new components, or removed items.
 - Be surgical. Change only what must change.
+- **Verify:** Re-read the changed section to confirm the edit took effect. If it didn't, re-apply.
 
 ### 6.2 Restructure task plan
-- Insert new tasks in `docs/tasks/plan.md` at the position that respects derived dependencies.
+- Edit `docs/tasks/plan.md`: insert new tasks, mark deprecated tasks `[~]`, reorder if needed.
 - If existing tasks are modified, note the change inline (e.g., append "(`updated YYYY-MM-DD`)").
-- If tasks are deprecated, mark them `[~]` with a note and date.
-- If task ordering breaks a dependency, reorder and note the reason.
+- **Verify:** Re-read the affected task lines to confirm edits persisted.
 
 ### 6.3 Write decision log entry
-- Record what was decided, why, and under what conditions to revisit.
+- Append entry to `docs/steward-log.md` with: **Decision**, **Why**, **Revisit if**.
+- **Verify:** Re-read the entry to confirm it was written.
 
 ---
 
