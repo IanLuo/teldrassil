@@ -1,6 +1,6 @@
 ---
 name: dev-workflow
-description: Enforces a strict 6-step development loop for Teldrassil: plan, design alignment, TDD, review gate (pass/fail), commit, and persist. Use when starting any new feature or task.
+description: Enforces a strict 6-step development loop for Teldrassil: plan, design alignment, TDD, review gate (pass/fail), commit, and persist. Use when starting any code implementation, bug fix, or configuration change.
 ---
 
 # dev-workflow
