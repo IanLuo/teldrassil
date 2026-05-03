@@ -14,6 +14,7 @@ This workflow applies ONLY to development tasks: code implementation, bug fixes,
 ### Step 1: Initialize & Plan
 - Read `docs/tasks/plan.md` and identify the next `[ ]` task.
 - Read `docs/memory.md` for relevant past lessons.
+- **Harness detection:** If the task touches `.opencode/skills/`, `.opencode/agents/`, `.opencode/commands/`, `AGENTS.md`, or `opencode.json`, also load the `skill-expert` skill for domain specs.
 - **Sanity check:** Verify no stale `[⏳]` tasks exist from previous sessions. If any `[⏳]` task appears completed (code exists, tests pass), fix it by marking it `[x]` before continuing.
 - Edit `docs/tasks/plan.md`: change `[ ]` to `[⏳]` (In Progress).
 - **Verify the edit:** Re-read the plan.md line for this task to confirm `[⏳]` is present before proceeding.
