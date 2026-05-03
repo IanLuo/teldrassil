@@ -24,7 +24,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 ## Phase 3: Vital Interfaces & Contracts
 * [x] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept <=4KB payloads and URIs).
 * [x] 3.2 **Build:** Define TypeScript `interface` for `IMemoryEngine` (must return `MemoryURI` and enforce signature validation).
-* [⏳] 3.3 **Build:** Define TypeScript `interface` for `IVault` (must support DEK generation and Secret retrieval).
+* [x] 3.3 **Build:** Define TypeScript `interface` for `IVault` (must support DEK generation and Secret retrieval).
 * [x] 3.4 **Build:** Define TypeScript `interface` for `IModelDriver` (must handle schema translation).
 * [ ] 3.5 **TDD/Build:** Create simple `InMemoryMock` classes for all four vital plugins to pass the kernel bootstrap tests.
 
