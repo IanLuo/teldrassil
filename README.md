@@ -1,47 +1,141 @@
-# Teldrassil: Modular Agentic Micro-Kernel Framework
+# 🌳 Teldrassil
 
-Current agentic frameworks are often monolithic, coupling the orchestration logic with specific model providers and tool implementations. Teldrassil solves this "technical debt" by adopting a **Micro-Kernel Architecture** that decouples infrastructure (Plugins) from execution logic (Orchestrators) and task definitions (Project Manifests).
+Modular Agentic Micro-Kernel Framework — a "Reliable OS for Agents."
 
-For a complete breakdown of the architecture, data boundaries, and protocols, please read the [Full Design Document](docs/design.md) and [Detailed Component Design](docs/detailed-components.md).
+Decouples infrastructure (Plugins) from execution logic (Orchestrators) and task definitions (Manifests). Built on a lightweight, protocol-agnostic message bus.
 
-## Tech Stack
+## Quick Start
 
-Teldrassil is built for hybrid deployment (Local CLI + Cloud Native). The core architecture leverages dynamic in-memory plugin loading to maximize performance.
+```bash
+# Install dependencies
+pnpm install
 
-- **Core & Orchestration:** TypeScript / Node.js
-- **Managing UI:** React (Next.js) with Zustand/Jotai
-- **Schema Validation:** Zod
-- **Memory Security:** AES-256-GCM (Envelope Encryption) + HMAC Signed URIs
+# Run the kernel
+pnpm start
 
-## System Architecture
+# Expected output:
+# 🌳 Teldrassil kernel bootstrapped successfully
+#    Plugins loaded: State, Memory, Vault, Driver
 
-The framework is divided into distinct layers that decouple infrastructure from execution:
+# Start the UI dashboard
+cd packages/ui && pnpm dev
+# → http://localhost:3000
+```
 
-### 1. User Definition
-* **Project Manifest (YAML):** The stable contract where users define workflows, select plugins, and assign specific AI models to Worker Agents via the `use_driver` mapping.
+## Project Structure
 
-### 2. The Immutable Core
-The **Micro-Kernel** acts as the central event bus and lifecycle manager. It routes messages between four strictly required "Vital Plugins":
-* **State Manager (The Ledger):** Tracks the execution pointer, node status, and stores small metadata/URIs (≤4KB).
-* **Memory Engine (The Warehouse):** Stores large payloads and vector data, returning HMAC-signed URIs to ensure secure, zero-lookup access.
-* **Identity Vault (The Passport):** Manages session keys (Envelope Encryption) and securely handles Just-In-Time (JIT) token injection.
-* **Model Drivers (The Voice):** Translates generic framework requests into specific LLM provider schemas (e.g., Anthropic, OpenAI).
+```
+teldrassil/
+├── src/core/           # Micro-Kernel + Vital Plugins (20 files)
+├── tests/core/         # 136 unit + integration tests
+├── packages/ui/        # Next.js dashboard (React Flow, Zustand)
+├── docs/               # Design docs, task plan, memory, steward log
+├── .opencode/          # Skills, agents, slash commands (harness)
+└── pnpm-workspace.yaml # Monorepo config
+```
 
-### 3. Extension Plugins
-Optional plugins that dynamically extend the framework's capabilities.
-* **MCP Bridge:** Implements the Model Context Protocol to seamlessly integrate external tools.
+## Architecture
 
-### 4. Orchestration & Strategies
-Defines *how* the agents work together to solve a task.
-* **DAG / Swarm Strategies:** Manage sequential pipelines (Supervisor pattern) or autonomous goal-oriented execution (Planner pattern).
-* **The Wildcard Rule:** An orchestration intercept that evaluates lists of subjective recommendations and forces an Agent rework if the output lacks diversity (preventing AI echo chambers).
+| Layer | Components |
+|-------|-----------|
+| **Micro-Kernel** | EventBus, PluginRegistry, BootstrapSequence, MicroKernel |
+| **Vital Plugins** | State (LocalStatePlugin), Memory (LocalMemoryPlugin), Vault (EnvVaultPlugin), Driver (AnthropicDriver) |
+| **Orchestration** | ManifestParser, Supervisor (quality gate), WildcardRule (diversity) |
+| **Mode** | Supervised Workflow — quality-gated execution with rework loops |
 
-### 5. Execution Layer
-* **Worker Agent:** The actual intelligence instance executing headless work, making proactive context queries to the Memory Engine, and triggering tool requests.
-* **Human-Attach Mode:** Allows a human to safely override, authenticate (via OOB login), or complete tasks manually.
-* **Shared Workspace:** The local Git repository or filesystem where both Headless Agents and Humans collaborate.
+## Commands
 
-### Key Data Flows
-* **Provider-Instance Pattern:** The Manifest maps capabilities to specific Drivers. The Drivers translate the Agent's logic into external API calls.
-* **Pointer-Payload Boundary:** A Worker Agent writes raw data directly to the *Memory Engine*. It receives a `unique_uri` back, which it logs as a trace step in the *State Manager*.
-* **JIT Security:** When a Worker Agent requests a tool via the *MCP Bridge*, the *Identity Vault* intercepts the request and securely injects the required token at the transport layer.
+```bash
+pnpm start          # Boot kernel
+pnpm test           # Run 136 core tests
+pnpm build          # TypeScript compile
+cd packages/ui && pnpm dev    # UI dashboard
+cd packages/ui && pnpm build  # UI production build
+```
+
+## Development
+
+Development follows the `dev-workflow` skill (6-step loop: plan → design → TDD → review → commit → persist). Tasks are tracked in `docs/tasks/plan.md`. See `AGENTS.md` for behavioral rules.
+
+## Integration Guide
+
+### As a library
+
+```typescript
+import { MicroKernel } from 'teldrassil';
+import { EnvVaultPlugin } from 'teldrassil/core/EnvVaultPlugin';
+import { LocalMemoryPlugin } from 'teldrassil/core/LocalMemoryPlugin';
+import { LocalStatePlugin } from 'teldrassil/core/LocalStatePlugin';
+import { AnthropicDriver } from 'teldrassil/core/AnthropicDriver';
+
+const kernel = new MicroKernel();
+
+// Register vital plugins
+kernel.register(new LocalStatePlugin());
+kernel.register(new LocalMemoryPlugin(process.env.MASTER_KEY!));
+kernel.register(new EnvVaultPlugin(process.env.MASTER_KEY!));
+kernel.register(new AnthropicDriver('claude-sonnet-4'));
+
+// Bootstrap and run
+await kernel.init();
+
+// Query state
+const state = kernel.getRegistry().getPlugin('State') as LocalStatePlugin;
+state.append({ node_id: 'step_1', status: 'completed', worker_id: 'agent_a', artifact_ref: null });
+
+// Shutdown
+await kernel.shutdown();
+```
+
+### With a manifest file
+
+```yaml
+# my-workflow.yaml
+project_id: "code_review_bot"
+workflow: "supervised"
+plugins:
+  model_drivers:
+    - id: "anthropic_adapter"
+      type: "drivers.models.anthropic"
+agents:
+  - id: "coder"
+    use_driver: "anthropic_adapter"
+    model: "claude-sonnet-4"
+sequence:
+  - step: "write_code"
+    agent: "coder"
+    max_retries: 3
+```
+
+```typescript
+import { ManifestParser } from 'teldrassil/core/ManifestParser';
+import fs from 'fs';
+
+const yaml = fs.readFileSync('my-workflow.yaml', 'utf8');
+const manifest = ManifestParser.parse(yaml);
+ManifestParser.validate(manifest); // throws SystemExit if invalid
+
+// Use manifest to configure agents and workflow
+```
+
+### With Supervisor quality gates
+
+```typescript
+import { Supervisor } from 'teldrassil/core/Supervisor';
+
+const result = Supervisor.evaluate({
+  output: '```ts\nconst x = 5;\n```',
+  retryCount: 0,
+  maxRetries: 3,
+  criteria: [
+    { description: 'must contain code block', check: (out) => out.includes('```') },
+    { description: 'must be at least 5 chars', check: (out) => out.length >= 5 },
+  ],
+});
+
+if (result === 'REWORK') {
+  // Send feedback to agent, retry
+} else if (result === 'ESCALATE') {
+  // Trigger Human-Attach mode
+}
+```
