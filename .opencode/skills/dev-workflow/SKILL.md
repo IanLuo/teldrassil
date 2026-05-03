@@ -12,7 +12,9 @@ You MUST follow these steps IN ORDER for EVERY task. Each step has a required ou
 ### Step 1: Initialize & Plan
 - Read `docs/tasks/plan.md` and identify the next `[ ]` task.
 - Read `docs/memory.md` for relevant past lessons.
+- **Sanity check:** Verify no stale `[⏳]` tasks exist from previous sessions. If any `[⏳]` task appears completed (code exists, tests pass), fix it by marking it `[x]` before continuing.
 - Edit `docs/tasks/plan.md`: change `[ ]` to `[⏳]` (In Progress).
+- **Verify the edit:** Re-read the plan.md line for this task to confirm `[⏳]` is present before proceeding.
 - Output a step-by-step execution plan BEFORE writing any code or running commands:
   ```
   ## Execution Plan for [Task ID]
@@ -50,16 +52,15 @@ You MUST follow these steps IN ORDER for EVERY task. Each step has a required ou
 - **FAILED** → Return to Step 3 and fix the gaps. Do NOT skip review. Output what specifically failed and what needs to change.
 
 ### Step 5: Commit Changes
-- Run `git add` for the relevant files (source + tests, not docs/tasks/plan.md yet).
+- Run `git add` for the relevant source files AND test files (NOT docs/tasks/plan.md).
 - Run `git commit` with a descriptive message summarizing the task.
-- **DENY:** Never commit docs/tasks/plan.md in this step — it gets updated in Step 6.
+- **DENY:** Never commit or stage `docs/tasks/plan.md` in this step. It MUST be handled separately in Step 6.
+- **DENY:** Do NOT combine this step with Step 6 in a single bash call. They must be separate actions.
 
 ### Step 6: Persist State
-- Edit `docs/tasks/plan.md`: change `[⏳]` to `[x]` (Completed).
-- If meaningful lessons were learned (gotchas, new patterns, design decisions), append to `docs/memory.md`:
-  ```
-  ## [Topic] - [Date]
-  - One-line lesson
-  ```
-- **Skip memory.md** if the task was routine with nothing new to record.
-- **DENY:** Task is NOT complete until `plan.md` is updated.
+- Edit `docs/tasks/plan.md`: change `[⏳]` to `[x]` (Completed) for the current task.
+- **Verify the edit:** Re-read the plan.md line for this task and confirm `[x]` is present. If the edit failed, re-apply it. Do NOT skip verification.
+- Run `git add docs/tasks/plan.md` and `git commit` with message describing the status update.
+- If meaningful lessons were learned (gotchas, new patterns, design decisions), append to `docs/memory.md` in a separate commit.
+- **DENY:** Task is NOT complete until `[x]` is committed AND verified in plan.md. Memory is optional — only write lessons worth future sessions knowing.
+- **DENY:** Do NOT combine plan.md commit with source file commit. They are separate tracked events.
