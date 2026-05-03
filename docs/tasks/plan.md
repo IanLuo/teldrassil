@@ -45,6 +45,6 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 ## Phase 6: Managing UI
 * [x] 6.1 Scaffold Next.js frontend in `packages/ui`.
-* [ ] 6.2 Implement Zustand/Jotai store to mirror the `State Manager`'s DAG position.
+* [x] 6.2 Implement Zustand/Jotai store to mirror the `State Manager`'s DAG position.
 * [ ] 6.3 Build the visualization component (e.g., React Flow) to render the active DAG.
 * [ ] 6.4 Build the "Human-Attach" override modal triggered by a `HUMAN_REQUIRED` kernel event.
