@@ -1,26 +1,26 @@
 import { create } from 'zustand';
 
 /**
- * DAG state entry matching the State Manager's schema.
+ * Workflow state entry matching the State Manager's schema.
  */
-export interface DAGEntry {
+export interface WorkflowEntry {
   node_id: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'rework';
   worker_id: string;
   artifact_ref: string | null;
 }
 
-interface DAGState {
+interface WorkflowState {
   sessionId: string;
   currentNode: string;
-  history: DAGEntry[];
+  history: WorkflowEntry[];
 
   setSessionId: (id: string) => void;
   setCurrentNode: (nodeId: string) => void;
-  addHistoryEntry: (entry: DAGEntry) => void;
+  addHistoryEntry: (entry: WorkflowEntry) => void;
 }
 
-export const useDAGStore = create<DAGState>((set) => ({
+export const useWorkflowStore = create<WorkflowState>((set) => ({
   sessionId: '',
   currentNode: 'idle',
   history: [],
