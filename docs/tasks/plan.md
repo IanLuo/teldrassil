@@ -4,13 +4,13 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phases 1-5 mostly complete. Phase 1.4 reopened (monorepo scaffold), Phase 2 extended (integration + CLI). Phase 6 not started.
+> **Current State:** Phase 1 complete (1.4 monorepo scaffold done). Phase 2 extended (2.7-2.8 pending). Phases 3-5 complete. Phase 6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
 * [x] 1.2 Create `personas` skill folder and `SKILL.md` defining Developer, Tester, Document Maintainer, and Reviewer mindsets.
 * [x] 1.3 Initialize `flake.nix` with Node.js 20, pnpm, and typescript language servers. Configure `direnv`.
-* [ ] 1.4 Scaffold `pnpm` workspace (monorepo: root `package.json`, `packages/core`, `packages/ui`).
+* [x] 1.4 Scaffold `pnpm` workspace (monorepo: root `package.json`, `packages/core`, `packages/ui`).
 * [x] 1.5 Setup testing framework (Vitest) and TypeScript configuration.
 
 ## Phase 2: The Micro-Kernel (Core Bus)
