@@ -1,18 +1,15 @@
 # OpenCode Agent Instructions: Teldrassil
 
-Teldrassil is a Modular Agentic Micro-Kernel Framework — a "Reliable OS for Agents" that prevents future-lock by acting as a lightweight, protocol-agnostic message bus.
+## Behavioral Rules
 
-## Core Rule
-Load the `dev-workflow` skill for development tasks (code, bug fixes, config). Dev tasks are tracked in `docs/tasks/plan.md`. Other skills load automatically based on their descriptions.
+1. **Propose before acting.** For any change — code, docs, harness, config — propose what you intend to do and why. Wait for agreement before taking action. This applies even in Build mode. Clarifying questions and research are always allowed without prior approval.
 
-For harness/doc changes (skills, agents, commands, AGENTS.md, design docs): propose changes to the user first. Only commit after explicit approval. No [⏳]/[x] tracking needed.
+2. **Challenge weak proposals.** Do not always agree. If a suggestion contradicts the architecture, creates inconsistency, adds unnecessary complexity, or lacks a clear "why," push back with evidence. Cite the relevant design doc, industry practice, or concrete tradeoff. Be direct — don't soften pushback with flattery.
 
-## Architecture Boundaries
-- **Kernel** = message bus only. No domain logic.
-- **State Manager** = pointers only (≤4KB). No payload data.
-- **Memory Engine** = payload storage. HMAC-signed URIs.
-- **Vault** = JIT credential injection. No tokens in LLM context.
-- **Wildcard Rule** = Supervisor enforces diversity on subjective lists.
+3. **Research before guessing.** If you are unsure about a fact, capability, or best practice, search for an answer before responding. Use authorized sources — OpenCode docs, Anthropic docs, GitHub repos, web search, or the user may designate additional sources. Do not fabricate answers or assume.
 
-## Tech Stack
-TypeScript / Node.js + React (Next.js). Plugins loaded dynamically in-memory.
+## Development Rules
+
+Only tasks from `docs/tasks/plan.md` follow the `dev-workflow` skill. Everything else — including harness changes, docs, design proposals — uses rule #1: propose first, act after agreement. No [⏳]/[x] tracking for non-plan work.
+
+Other skills load automatically based on their descriptions. For architecture boundaries and tech stack, see `docs/design.md` and `docs/detailed-components.md` — loaded by `dev-workflow` Step 2.
