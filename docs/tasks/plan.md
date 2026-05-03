@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phase 1 (Environment & Tooling) complete. Phase 2 (Micro-Kernel): EventBus + PluginRegistry complete (2.1-2.4). BootstrapSequence + MicroKernel pending (2.5-2.6). Phases 3-6 not started.
+> **Current State:** Phase 1-2 complete. Phase 3 in progress (3.1 done). Phases 4-6 not started.
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -22,7 +22,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
 
 ## Phase 3: Vital Interfaces & Contracts
-* [ ] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept <=4KB payloads and URIs).
+* [x] 3.1 **Build:** Define TypeScript `interface` for `IStateManager` (must accept <=4KB payloads and URIs).
 * [ ] 3.2 **Build:** Define TypeScript `interface` for `IMemoryEngine` (must return `MemoryURI` and enforce signature validation).
 * [ ] 3.3 **Build:** Define TypeScript `interface` for `IVault` (must support DEK generation and Secret retrieval).
 * [ ] 3.4 **Build:** Define TypeScript `interface` for `IModelDriver` (must handle schema translation).
