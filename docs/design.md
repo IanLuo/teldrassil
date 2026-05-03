@@ -98,8 +98,8 @@ To protect sensitive domain data (Artifacts) without introducing encryption bott
 ## 3. Orchestration & Workflow Logic
 The framework supports multiple "Strategy" plugins to dictate how agents interact.
 
-### 3.1 Directed Acyclic Graph (DAG) Mode
-Predictable, sequential workflows. Each node represents a specific agent task. 
+### 3.1 Supervised Workflow Mode
+Predictable, sequential workflows with quality-gated rework loops. Each node represents a specific agent task. 
 * **The Supervisor Pattern:** Even in a DAG, a "Manager Agent" sits between nodes. It evaluates the output of a worker and decides whether to **Proceed** to the next node or **Rework** the current step with feedback.
 
 ### 3.2 Autonomous Swarm Mode
