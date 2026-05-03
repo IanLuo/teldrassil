@@ -1,0 +1,122 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { EventBus } from '../../src/core/EventBus';
+import { PluginRegistry } from '../../src/core/PluginRegistry';
+import { BootstrapSequence } from '../../src/core/BootstrapSequence';
+import { SystemExit } from '../../src/core/SystemExit';
+
+describe('InMemoryMocks — BootstrapSequence integration', () => {
+  let eventBus: EventBus;
+  let registry: PluginRegistry;
+
+  beforeEach(() => {
+    eventBus = new EventBus();
+    registry = new PluginRegistry(eventBus);
+  });
+
+  it('should pass bootstrap validation when all four vital mocks are registered', async () => {
+    const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
+    const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
+    const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+    const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+
+    registry.register(new InMemoryStateManager());
+    registry.register(new InMemoryMemoryEngine());
+    registry.register(new InMemoryVault());
+    registry.register(new InMemoryModelDriver());
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).resolves.toBeUndefined();
+  });
+
+  it('should throw SystemExit when State mock is missing', async () => {
+    const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
+    const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+    const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+
+    registry.register(new InMemoryMemoryEngine());
+    registry.register(new InMemoryVault());
+    registry.register(new InMemoryModelDriver());
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
+  });
+
+  it('should throw SystemExit when Memory mock is missing', async () => {
+    const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
+    const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+    const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+
+    registry.register(new InMemoryStateManager());
+    registry.register(new InMemoryVault());
+    registry.register(new InMemoryModelDriver());
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
+  });
+
+  it('should throw SystemExit when Vault mock is missing', async () => {
+    const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
+    const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
+    const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+
+    registry.register(new InMemoryStateManager());
+    registry.register(new InMemoryMemoryEngine());
+    registry.register(new InMemoryModelDriver());
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
+  });
+
+  it('should throw SystemExit when Driver mock is missing', async () => {
+    const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
+    const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
+    const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+
+    registry.register(new InMemoryStateManager());
+    registry.register(new InMemoryMemoryEngine());
+    registry.register(new InMemoryVault());
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
+  });
+
+  it('should throw SystemExit when a vital mock returns unhealthy ping', async () => {
+    const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
+    const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
+    const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+    const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+
+    registry.register(new InMemoryStateManager());
+    registry.register(new InMemoryMemoryEngine());
+    registry.register(new InMemoryVault());
+    registry.register(new InMemoryModelDriver(false)); // unhealthy
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
+  });
+
+  it('should not throw when extra non-vital plugins are registered', async () => {
+    const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
+    const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
+    const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+    const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+
+    registry.register(new InMemoryStateManager());
+    registry.register(new InMemoryMemoryEngine());
+
+    // extra non-vital plugin
+    class ExtraPlugin {
+      name = 'ExtraPlugin';
+      version = '1.0.0';
+      initialize = () => {};
+      ping = async () => true;
+    }
+    registry.register(new ExtraPlugin() as any);
+
+    registry.register(new InMemoryVault());
+    registry.register(new InMemoryModelDriver());
+
+    const bootstrap = new BootstrapSequence(registry);
+    await expect(bootstrap.execute()).resolves.toBeUndefined();
+  });
+});
