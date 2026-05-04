@@ -6,7 +6,7 @@ import { MicroKernel } from '../../src/core/MicroKernel';
 import { LocalStatePlugin } from '../../src/core/LocalStatePlugin';
 import { LocalMemoryPlugin } from '../../src/core/LocalMemoryPlugin';
 import { EnvVaultPlugin } from '../../src/core/EnvVaultPlugin';
-import { AnthropicDriver } from '../../src/core/AnthropicDriver';
+import { UnifiedModelDriver } from '../../src/core/UnifiedModelDriver';
 import { LocalJsonTracePlugin } from '../../src/core/LocalJsonTracePlugin';
 
 describe('CLI Entry Point', () => {
@@ -17,8 +17,11 @@ describe('CLI Entry Point', () => {
 
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin(masterKey));
-    kernel.register(new EnvVaultPlugin(masterKey));
-    kernel.register(new AnthropicDriver('claude-sonnet-4'));
+    
+    const vault = new EnvVaultPlugin(masterKey);
+    kernel.register(vault);
+    
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();

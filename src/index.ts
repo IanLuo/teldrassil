@@ -3,7 +3,7 @@ import { EnvVaultPlugin } from './core/EnvVaultPlugin';
 import { LocalMemoryPlugin } from './core/LocalMemoryPlugin';
 import { LocalStatePlugin } from './core/LocalStatePlugin';
 import { LocalJsonTracePlugin } from './core/LocalJsonTracePlugin';
-import { AnthropicDriver } from './core/AnthropicDriver';
+import { UnifiedModelDriver } from './core/UnifiedModelDriver';
 import path from 'path';
 
 /**
@@ -24,8 +24,16 @@ async function main(): Promise<void> {
   // Register vital plugins in dependency order
   kernel.register(new LocalStatePlugin());
   kernel.register(new LocalMemoryPlugin(masterKey));
-  kernel.register(new EnvVaultPlugin(masterKey));
-  kernel.register(new AnthropicDriver());
+  
+  const vault = new EnvVaultPlugin(masterKey);
+  kernel.register(vault);
+  
+  kernel.register(new UnifiedModelDriver(vault, {
+    anthropic: 'ANTHROPIC_API_KEY',
+    openai: 'OPENAI_API_KEY',
+    google: 'GOOGLE_API_KEY'
+  }));
+  
   kernel.register(new LocalJsonTracePlugin(traceDir));
 
   await kernel.init();

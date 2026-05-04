@@ -6,7 +6,7 @@ import { MicroKernel } from '../../src/core/MicroKernel';
 import { EnvVaultPlugin } from '../../src/core/EnvVaultPlugin';
 import { LocalMemoryPlugin } from '../../src/core/LocalMemoryPlugin';
 import { LocalStatePlugin } from '../../src/core/LocalStatePlugin';
-import { AnthropicDriver } from '../../src/core/AnthropicDriver';
+import { UnifiedModelDriver } from '../../src/core/UnifiedModelDriver';
 import { LocalJsonTracePlugin } from '../../src/core/LocalJsonTracePlugin';
 
 describe('MicroKernel — Integration', () => {
@@ -25,10 +25,11 @@ describe('MicroKernel — Integration', () => {
   });
 
   it('should bootstrap with all five vital plugins', async () => {
+    const vault = new EnvVaultPlugin('master-key-for-integration');
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('master-key-for-integration'));
-    kernel.register(new EnvVaultPlugin('master-key-for-integration'));
-    kernel.register(new AnthropicDriver('claude-sonnet-4'));
+    kernel.register(vault);
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await expect(kernel.init()).resolves.toBeUndefined();
@@ -42,10 +43,11 @@ describe('MicroKernel — Integration', () => {
 
     bus.subscribe('kernel:bootstrapped', () => events.push('bootstrapped'));
 
+    const vault = new EnvVaultPlugin('key');
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
-    kernel.register(new EnvVaultPlugin('key'));
-    kernel.register(new AnthropicDriver());
+    kernel.register(vault);
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -61,10 +63,11 @@ describe('MicroKernel — Integration', () => {
     bus.subscribe('kernel:shutting-down', () => events.push('shutting-down'));
     bus.subscribe('kernel:shutdown', () => events.push('shutdown'));
 
+    const vault = new EnvVaultPlugin('key');
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
-    kernel.register(new EnvVaultPlugin('key'));
-    kernel.register(new AnthropicDriver());
+    kernel.register(vault);
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -74,10 +77,11 @@ describe('MicroKernel — Integration', () => {
   });
 
   it('should call shutdown on all registered plugins', async () => {
+    const vault = new EnvVaultPlugin('key');
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
-    kernel.register(new EnvVaultPlugin('key'));
-    kernel.register(new AnthropicDriver());
+    kernel.register(vault);
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -94,10 +98,11 @@ describe('MicroKernel — Integration', () => {
   });
 
   it('should allow swapping a vital plugin without bootstrap failure', async () => {
+    const vault = new EnvVaultPlugin('key-original');
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
-    kernel.register(new EnvVaultPlugin('key-original'));
-    kernel.register(new AnthropicDriver());
+    kernel.register(vault);
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -110,10 +115,11 @@ describe('MicroKernel — Integration', () => {
   });
 
   it('should prevent detaching a vital plugin', async () => {
+    const vault = new EnvVaultPlugin('key');
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
-    kernel.register(new EnvVaultPlugin('key'));
-    kernel.register(new AnthropicDriver());
+    kernel.register(vault);
+    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
