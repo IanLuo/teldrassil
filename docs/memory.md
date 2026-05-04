@@ -30,3 +30,7 @@ This file is loaded into every session via `opencode.json` instructions, so keep
 - Provider factory pattern: `createAnthropic({apiKey}).chat(modelId)` for Anthropic/OpenAI; `createGoogleGenerativeAI({apiKey})(modelId)` for Google (returns a function, not `.chat()`).
 - `generateText({ model, messages, maxTokens, temperature })` returns `{ text, usage: { inputTokens, outputTokens } }`.
 - Dynamic imports (`await import('@ai-sdk/anthropic')`) keep the core driver light and allow tree-shaking per provider.
+
+## EventBus pause/resume pattern - 2026-05-04
+- Human-Attach protocol: runner emits `human:required`, then waits on a `Promise` that resolves when the matching `human:response` event arrives. Pattern: `new Promise(resolve => { const unsub = bus.subscribe(topic, handler); handler resolves and calls unsub(); })`.
+- RequestId matching ensures runners only wake for their own response — multiple concurrent blocked steps don't interfere.
