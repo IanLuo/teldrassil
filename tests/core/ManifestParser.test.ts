@@ -150,5 +150,18 @@ agents: []
     it('should throw SystemExit on invalid YAML syntax', () => {
       expect(() => ManifestParser.parse(invalidYaml)).toThrow(SystemExit);
     });
+
+    it('should throw SystemExit on schema validation failure', () => {
+      const invalidSchemaYaml = `
+project_id: "test_project"
+workflow: "supervised"
+plugins:
+  model_drivers:
+    - type: "drivers.models.anthropic"
+agents: []
+`;
+      // Missing 'id' in model_drivers should fail schema validation
+      expect(() => ManifestParser.parse(invalidSchemaYaml)).toThrow(SystemExit);
+    });
   });
 });
