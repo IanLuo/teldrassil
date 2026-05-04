@@ -9,6 +9,8 @@ interface SupervisorInput {
     description: string;
     check: (output: string) => boolean;
   }>;
+  isComplete?: boolean;
+  isBlocked?: boolean;
 }
 
 describe('Supervisor — Quality Gate', () => {
@@ -126,6 +128,100 @@ describe('Supervisor — Quality Gate', () => {
       expect(result).toBe(SupervisorDecision.REWORK);
       // First criterion failed ('hi'.length=2 < 5), second should not run
       expect(secondChecked).toBe(false); // short-circuit on first failure
+    });
+
+    describe('5-enum extended decisions', () => {
+      it('should return BLOCK when isBlocked is true', () => {
+        const input: SupervisorInput = {
+          output: 'some output',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [passLength],
+          isBlocked: true,
+        };
+
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.BLOCK);
+      });
+
+      it('should return COMPLETE when isComplete is true and all criteria pass', () => {
+        const input: SupervisorInput = {
+          output: '```ts\nconst x = 5;\n```',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [passLength, containCode],
+          isComplete: true,
+        };
+
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.COMPLETE);
+      });
+
+      it('should return REWORK when isComplete is true but criteria fail', () => {
+        const input: SupervisorInput = {
+          output: 'hi',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [passLength],
+          isComplete: true,
+        };
+
+        // isComplete is not a free pass — criteria must also pass
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.REWORK);
+      });
+
+      it('should return PROCEED when neither blocked nor complete and criteria pass', () => {
+        const input: SupervisorInput = {
+          output: 'hello world',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [passLength],
+          isBlocked: false,
+          isComplete: false,
+        };
+
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.PROCEED);
+      });
+
+      it('should prioritise BLOCK over ESCALATE even when retries exhausted', () => {
+        const input: SupervisorInput = {
+          output: 'hi',
+          retryCount: 5,
+          maxRetries: 3,
+          criteria: [passLength],
+          isBlocked: true,
+        };
+
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.BLOCK);
+      });
+
+      it('should prioritise BLOCK over REWORK even when criteria fail', () => {
+        const input: SupervisorInput = {
+          output: 'hi',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [passLength],
+          isBlocked: true,
+        };
+
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.BLOCK);
+      });
+
+      it('should return ESCALATE when retries exceeded and neither BLOCK nor COMPLETE', () => {
+        const input: SupervisorInput = {
+          output: 'anything',
+          retryCount: 4,
+          maxRetries: 3,
+          criteria: [],
+        };
+
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.ESCALATE);
+      });
     });
   });
 });

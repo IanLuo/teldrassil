@@ -2,6 +2,8 @@ export enum SupervisorDecision {
   PROCEED = 'PROCEED',
   REWORK = 'REWORK',
   ESCALATE = 'ESCALATE',
+  BLOCK = 'BLOCK',
+  COMPLETE = 'COMPLETE',
 }
 
 export interface SupervisorInput {
@@ -12,6 +14,8 @@ export interface SupervisorInput {
     description: string;
     check: (output: string) => boolean;
   }>;
+  isBlocked?: boolean;
+  isComplete?: boolean;
 }
 
 export class Supervisor {
@@ -19,21 +23,29 @@ export class Supervisor {
    * Evaluate worker output against quality criteria.
    *
    * Decision order:
-   * 1. If retryCount > maxRetries → ESCALATE (escalation gate takes priority)
-   * 2. If any criterion fails → REWORK (binary quality gate)
-   * 3. All criteria pass → PROCEED
+   * 1. If isBlocked → BLOCK (human intervention required, takes highest priority)
+   * 2. If retryCount > maxRetries → ESCALATE (escalation gate)
+   * 3. If any criterion fails → REWORK (binary quality gate)
+   * 4. If isComplete → COMPLETE (workflow finished)
+   * 5. All criteria pass → PROCEED
    */
   static evaluate(input: SupervisorInput): SupervisorDecision {
-    // Escalation gate: retries exhausted
+    if (input.isBlocked) {
+      return SupervisorDecision.BLOCK;
+    }
+
     if (input.retryCount > input.maxRetries) {
       return SupervisorDecision.ESCALATE;
     }
 
-    // Quality gate: check all criteria, short-circuit on first failure
     for (const criterion of input.criteria) {
       if (!criterion.check(input.output)) {
         return SupervisorDecision.REWORK;
       }
+    }
+
+    if (input.isComplete) {
+      return SupervisorDecision.COMPLETE;
     }
 
     return SupervisorDecision.PROCEED;
