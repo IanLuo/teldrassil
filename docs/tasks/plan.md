@@ -4,13 +4,13 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** Phases 1-6 complete. Phase 7 in progress (7.1 done).
+> **Current State:** Phases 1-7 complete. Phase 8 in progress.
 
 ## Phase 1: Environment & Tooling
-* [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
+* [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 6-step strict process (status check, design check, TDD loop, review gate, commit, persist state).
 * [x] 1.2 Create `personas` skill folder and `SKILL.md` defining Developer, Tester, Document Maintainer, and Reviewer mindsets.
 * [x] 1.3 Initialize `flake.nix` with Node.js 20, pnpm, and typescript language servers. Configure `direnv`.
-* [x] 1.4 Scaffold `pnpm` workspace (monorepo: root `package.json`, `packages/core`, `packages/ui`).
+* [x] 1.4 Scaffold `pnpm` workspace (monorepo: root `package.json`, `packages/ui` with core at `src/core`).
 * [x] 1.5 Setup testing framework (Vitest) and TypeScript configuration.
 
 ## Phase 2: The Micro-Kernel (Core Bus)
@@ -18,9 +18,9 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 2.2 **Build:** Implement `PluginRegistry`.
 * [x] 2.3 **TDD:** Write tests for `EventDispatcher`. It must support pub/sub and wildcard event listening.
 * [x] 2.4 **Build:** Implement `EventDispatcher` (as `EventBus`).
-* [x] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly four vital interfaces (`State`, `Memory`, `Vault`, `Driver`) are present, ping them, and throw `SystemExit` if missing.
+* [x] 2.5 **TDD:** Write tests for `BootstrapSequence`. It must validate that exactly five vital interfaces (`State`, `Memory`, `Vault`, `Driver`, `Trace`) are present, ping them, and throw `SystemExit` if missing.
 * [x] 2.6 **Build:** Implement the `MicroKernel` class tying Registry, Dispatcher, and Bootstrap together.
-* [x] 2.7 **Integration:** Write end-to-end test bootstrapping MicroKernel with all four vital plugins (`EnvVaultPlugin`, `LocalMemoryPlugin`, `LocalStatePlugin`, `AnthropicDriver`) and verifying full lifecycle (bootstrap → ping → shutdown).
+* [x] 2.7 **Integration:** Write end-to-end test bootstrapping MicroKernel with all five vital plugins (`EnvVaultPlugin`, `LocalMemoryPlugin`, `LocalStatePlugin`, `UnifiedModelDriver`, `LocalJsonTracePlugin`) and verifying full lifecycle (bootstrap → ping → shutdown).
 * [x] 2.8 **Build:** Implement CLI entry point (`src/index.ts`) that loads kernel, registers vital plugins, runs bootstrap, and reports status.
 
 ## Phase 3: Vital Interfaces & Contracts
@@ -28,7 +28,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 3.2 **Build:** Define TypeScript `interface` for `IMemoryEngine` (must return `MemoryURI` and enforce signature validation).
 * [x] 3.3 **Build:** Define TypeScript `interface` for `IVault` (must support DEK generation and Secret retrieval).
 * [x] 3.4 **Build:** Define TypeScript `interface` for `IModelDriver` (must handle schema translation).
-* [x] 3.5 **TDD/Build:** Create simple `InMemoryMock` classes for all four vital plugins to pass the kernel bootstrap tests.
+* [x] 3.5 **TDD/Build:** Create simple `InMemoryMock` classes for all five vital plugins to pass the kernel bootstrap tests.
 
 ## Phase 4: Orchestration & Workflow Logic
 * [x] 4.1 **TDD/Build:** Create the `ManifestParser` with Zod to validate `system_config.yaml` against the Provider-Instance pattern mapping (`use_driver` -> `model`).
@@ -58,3 +58,13 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 7.6 **Structured Routing:** Extend `SupervisorDecision` to 5-enum and create `RouteDecision` metadata struct written to Trace Log.
 * [x] 7.7 **Workflow Runner:** Implement the workflow execution loop (`WorkflowRunner`) that executes the manifest sequence.
 * [x] 7.8 **Human Interaction:** Wire the `HUMAN_REQUIRED` event and protocol (HumanInputRequest/Result) to the runner.
+
+## Phase 8: Architecture Rectification
+* [x] 8.1 **Refactor:** Purge `AnthropicDriver`. Delete `AnthropicDriver.ts` and its tests, and update `src/index.ts` and integration tests to use `UnifiedModelDriver` exclusively.
+* [ ] 8.2 **Refactor:** Dynamic Plugin Naming. Update drivers (`UnifiedModelDriver`, `HostFunctionDriver`, `InMemoryModelDriver`) to accept an `id` in their constructor instead of hardcoding `name = 'Driver'`, allowing multiple drivers to coexist in the `PluginRegistry`.
+* [ ] 8.3 **Refactor:** Fix Kernel Bootstrap. Update `BootstrapSequence.ts` to drop the hardcoded check for the exact name `'Driver'` and instead verify that required drivers are present.
+* [ ] 8.4 **Refactor:** Fix Workflow Runner. Update `WorkflowRunner.ts` to fetch the driver using `agent.use_driver` instead of the hardcoded `'Driver'` slot.
+* [ ] 8.5 **Feature:** Wire Wildcard Rule. Update `Supervisor.evaluate()` to invoke `WildcardRule.evaluate()` for diversity scoring when applicable.
+* [ ] 8.6 **Feature:** Wire Evaluator Agents. Update `WorkflowRunner.ts` to invoke the agent defined in the `evaluator` field (if present) for binary PROCEED/REWORK decisions, logging findings to the `TraceLog`.
+* [ ] 8.7 **Refactor:** Zod Manifest Validation. Replace the hand-rolled YAML parser in `ManifestParser.ts` with strict schema validation using `zod` and `js-yaml`.
+* [ ] 8.8 **Docs:** Fix `IMemoryEngine` JSDoc (remove `@throws Unauthorized` since it returns `null`) and clean up `IVault` (remove or document the dead `injectCredential` method).
