@@ -43,7 +43,8 @@ This workflow applies ONLY to development tasks: code implementation, bug fixes,
 
 ### Step 4: Review Gate (PASS or FAIL)
 
-You MUST output this checklist and check EVERY item before proceeding. If this checklist does not appear in your response, the review did not happen.
+- **[Gatekeeper]** You MUST adopt the Gatekeeper persona to rigorously evaluate the changes against the architecture, scope, and security.
+- **[Gatekeeper]** Output this checklist and check EVERY item before proceeding. If this checklist does not appear in your response, the review did not happen.
 
 ```
 ## Review Gate
