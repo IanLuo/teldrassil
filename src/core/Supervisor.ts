@@ -1,3 +1,5 @@
+import { WildcardRule } from './WildcardRule';
+
 export enum SupervisorDecision {
   PROCEED = 'PROCEED',
   REWORK = 'REWORK',
@@ -16,6 +18,10 @@ export interface SupervisorInput {
   }>;
   isBlocked?: boolean;
   isComplete?: boolean;
+  diversity?: {
+    items: string[];
+    threshold: number;
+  };
 }
 
 export class Supervisor {
@@ -40,6 +46,13 @@ export class Supervisor {
 
     for (const criterion of input.criteria) {
       if (!criterion.check(input.output)) {
+        return SupervisorDecision.REWORK;
+      }
+    }
+
+    if (input.diversity) {
+      const result = WildcardRule.evaluate(input.diversity.items, input.diversity.threshold);
+      if (!result.passed) {
         return SupervisorDecision.REWORK;
       }
     }

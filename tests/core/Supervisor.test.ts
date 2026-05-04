@@ -11,6 +11,10 @@ interface SupervisorInput {
   }>;
   isComplete?: boolean;
   isBlocked?: boolean;
+  diversity?: {
+    items: string[];
+    threshold: number;
+  };
 }
 
 describe('Supervisor — Quality Gate', () => {
@@ -221,6 +225,55 @@ describe('Supervisor — Quality Gate', () => {
 
         const result = Supervisor.evaluate(input);
         expect(result).toBe(SupervisorDecision.ESCALATE);
+      });
+    });
+
+    describe('Diversity / WildcardRule integration', () => {
+      it('should return PROCEED when diversity check passes', () => {
+        const input: SupervisorInput = {
+          output: 'test',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [],
+          diversity: {
+            items: ['apple', 'banana', 'cherry', 'date'],
+            threshold: 0.5,
+          },
+        };
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.PROCEED);
+      });
+
+      it('should return REWORK when diversity check fails', () => {
+        const input: SupervisorInput = {
+          output: 'test',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [],
+          diversity: {
+            items: ['apple', 'apple', 'apple', 'apple'],
+            threshold: 0.5,
+          },
+        };
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.REWORK);
+      });
+
+      it('should still evaluate criteria if diversity check passes', () => {
+        const input: SupervisorInput = {
+          output: 'fail',
+          retryCount: 0,
+          maxRetries: 3,
+          criteria: [
+            { description: 'must be long', check: out => out.length > 10 }
+          ],
+          diversity: {
+            items: ['apple', 'banana', 'cherry'],
+            threshold: 0.1,
+          },
+        };
+        const result = Supervisor.evaluate(input);
+        expect(result).toBe(SupervisorDecision.REWORK);
       });
     });
   });
