@@ -6,6 +6,7 @@ import type { ITraceLog } from './ITraceLog';
 import { Supervisor, SupervisorDecision, type SupervisorInput } from './Supervisor';
 import { recordRouteDecision } from './RouteDecision';
 import { SystemExit } from './SystemExit';
+import type { HumanInputRequest, HumanInputResult } from './HumanProtocol';
 
 export interface StepResult {
   step: string;
@@ -132,20 +133,39 @@ export class WorkflowRunner {
         }
 
         if (decision === SupervisorDecision.BLOCK) {
-          this.kernel.getEventBus().publish('human:required', {
+          const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const request: HumanInputRequest = {
+            requestId,
             step: step.step,
             agent: step.agent,
+            prompt: `Step "${step.step}" executed by agent "${step.agent}" requires human intervention.`,
             output,
-          });
+          };
+
+          this.kernel.getEventBus().publish('human:required', request);
+
           this.getStateManager().append({
             node_id: step.step,
             status: 'failed',
             worker_id: step.agent,
             artifact_ref: null,
           });
-          throw new SystemExit(
-            `Step '${step.step}' blocked — human intervention required`
-          );
+
+          const humanResult = await this.waitForHumanResponse(requestId);
+
+          if (humanResult.action === 'abort') {
+            throw new SystemExit(
+              `Step '${step.step}' aborted by human operator`
+            );
+          }
+
+          if (humanResult.action === 'rework') {
+            stepRetries++;
+            continue;
+          }
+
+          decision = isLastStep ? SupervisorDecision.COMPLETE : SupervisorDecision.PROCEED;
+          break;
         }
       }
 
@@ -174,6 +194,21 @@ export class WorkflowRunner {
     });
 
     return { steps: results, finalDecision };
+  }
+
+  private waitForHumanResponse(requestId: string): Promise<HumanInputResult> {
+    return new Promise((resolve) => {
+      const unsubscribe = this.kernel.getEventBus().subscribe(
+        'human:response',
+        (payload: unknown) => {
+          const result = payload as HumanInputResult;
+          if (result.requestId === requestId) {
+            unsubscribe();
+            resolve(result);
+          }
+        },
+      );
+    });
   }
 
   private resolveAgent(agentId: string): AgentConfig {

@@ -4,6 +4,7 @@ import type { Manifest } from '../../src/core/ManifestParser';
 import type { IModelDriver, Message, GenerateOptions, GenerateResult, VendorPayload, DriverCapabilities } from '../../src/core/IModelDriver';
 import type { IStateManager, StateEntry } from '../../src/core/IStateManager';
 import type { ITraceLog, TraceURI } from '../../src/core/ITraceLog';
+import type { HumanInputRequest, HumanInputResult } from '../../src/core/HumanProtocol';
 import { MicroKernel } from '../../src/core/MicroKernel';
 import { SystemExit } from '../../src/core/SystemExit';
 
@@ -454,31 +455,188 @@ describe('WorkflowRunner', () => {
     expect(completedCalls[0][1]).toHaveProperty('steps');
   });
 
-  it('should publish human:required event on BLOCK decision', async () => {
+  // 12. BLOCK → pause/resume via Human Protocol
+  it('should pause on BLOCK and resume on human:response (proceed)', async () => {
     const manifest = createTestManifest({
       sequence: [{ step: 'blocked_step', agent: 'agent_a', max_retries: 1 }],
       agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
     });
     const kernel = createMicroKernel();
 
-    const driver = createTestDriver(async () => ({ content: 'valid output' }));
+    const driver = createTestDriver(async () => ({ content: 'blocked output' }));
     kernel.getRegistry().register(driver);
     kernel.getRegistry().register(createInMemoryStateManager());
     kernel.getRegistry().register(createInMemoryTraceLog());
 
-    const eventBus = kernel.getEventBus();
-    const receivedEvents: Array<unknown> = [];
-    eventBus.subscribe('human:required', (payload: unknown) => {
-      receivedEvents.push(payload);
+    // Subscribe to human:required and respond with proceed
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
     });
 
-    // Use isBlocked injection via options — makes Supervisor return BLOCK
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+    expect(result.steps[0].output).toBe('blocked output');
+  });
+
+  it('should abort on BLOCK when human responds with abort', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'abort_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'abort me' }));
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'abort',
+        } as HumanInputResult);
+      }, 0);
+    });
+
     const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
     await expect(runner.run()).rejects.toThrow(SystemExit);
+    await expect(runner.run()).rejects.toThrow(/aborted by human operator/);
+  });
 
-    expect(receivedEvents.length).toBe(1);
-    const event = receivedEvents[0] as Record<string, unknown>;
-    expect(event.step).toBe('blocked_step');
-    expect(event.agent).toBe('agent_a');
+  it('should retry on BLOCK when human responds with rework', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'rework_step', agent: 'agent_a', max_retries: 3 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      if (callCount === 1) return { content: 'block me' };
+      return { content: 'fixed after human review' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    let blockCount = 0;
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      blockCount++;
+      const request = payload as HumanInputResult;
+      if (blockCount === 1) {
+        // First block: human says rework
+        setTimeout(() => {
+          kernel.getEventBus().publish('human:response', {
+            requestId: request.requestId,
+            action: 'rework',
+          } as HumanInputResult);
+        }, 0);
+      } else {
+        // Second block: human says proceed
+        setTimeout(() => {
+          kernel.getEventBus().publish('human:response', {
+            requestId: request.requestId,
+            action: 'proceed',
+          } as HumanInputResult);
+        }, 0);
+      }
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    const result = await runner.run();
+
+    expect(callCount).toBeGreaterThanOrEqual(2);
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].retries).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should publish HumanInputRequest with correct fields on BLOCK', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'blocked_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'blocked output' }));
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const receivedRequests: HumanInputRequest[] = [];
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      receivedRequests.push(request);
+      // Respond so the runner doesn't hang
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    await runner.run();
+
+    expect(receivedRequests.length).toBe(1);
+    const req = receivedRequests[0];
+    expect(req.requestId).toMatch(/^req-/);
+    expect(req.step).toBe('blocked_step');
+    expect(req.agent).toBe('agent_a');
+    expect(req.output).toBe('blocked output');
+    expect(req.prompt).toContain('blocked_step');
+    expect(req.prompt).toContain('agent_a');
+  });
+
+  it('should wait for matching requestId only', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'match_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'match me' }));
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const mismatchedIds: string[] = [];
+
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      // First, publish a response with a WRONG requestId — should be ignored
+      kernel.getEventBus().publish('human:response', {
+        requestId: 'wrong-id',
+        action: 'proceed',
+      } as HumanInputResult);
+      mismatchedIds.push('wrong-id');
+
+      // Then publish the correct response
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+    // The wrong-id response was sent but the runner ignored it and waited for the right one
   });
 });
