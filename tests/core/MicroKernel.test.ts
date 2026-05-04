@@ -140,10 +140,14 @@ describe('MicroKernel', () => {
 
   describe('immutable core', () => {
     it('should throw SystemExit when detaching a vital plugin', () => {
+      kernel.register(createVitalPlugin('State'));
+      kernel.register(createVitalPlugin('Memory'));
+      kernel.register(createVitalPlugin('Vault'));
+      kernel.register(createVitalPlugin('Trace'));
+
       expect(() => kernel.detach('State')).toThrow(SystemExit);
       expect(() => kernel.detach('Memory')).toThrow(SystemExit);
       expect(() => kernel.detach('Vault')).toThrow(SystemExit);
-      expect(() => kernel.detach('Driver')).toThrow(SystemExit);
       expect(() => kernel.detach('Trace')).toThrow(SystemExit);
     });
 

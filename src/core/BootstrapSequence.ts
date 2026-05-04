@@ -1,7 +1,7 @@
 import { PluginRegistry } from './PluginRegistry';
 import { SystemExit } from './SystemExit';
 
-export const VITAL_PLUGINS = ['State', 'Memory', 'Vault', 'Driver', 'Trace'] as const;
+export const VITAL_PLUGINS = ['State', 'Memory', 'Vault', 'Trace'] as const;
 
 export class BootstrapSequence {
   private registry: PluginRegistry;
@@ -25,6 +25,27 @@ export class BootstrapSequence {
       if (!isHealthy) {
         throw new SystemExit(`Vital plugin ${pluginName} failed health ping`);
       }
+    }
+
+    // Ensure at least one Model Driver is registered
+    const allPlugins = this.registry.getAllPlugins();
+    let hasDriver = false;
+    for (const plugin of allPlugins.values()) {
+      // Drivers typically implement translate() or countTokens(), or simply end with 'Driver'
+      if (typeof (plugin as any).translate === 'function' || plugin.name.endsWith('Driver') || (plugin as any).getCapabilities) {
+        hasDriver = true;
+        if (typeof plugin.ping !== 'function') {
+          throw new SystemExit(`Vital plugin ${plugin.name} does not implement ping`);
+        }
+        const isHealthy = await plugin.ping();
+        if (!isHealthy) {
+          throw new SystemExit(`Vital plugin ${plugin.name} failed health ping`);
+        }
+      }
+    }
+
+    if (!hasDriver) {
+      throw new SystemExit('Vital plugin missing: Driver');
     }
   }
 }
