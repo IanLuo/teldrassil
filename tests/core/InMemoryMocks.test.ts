@@ -13,16 +13,18 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     registry = new PluginRegistry(eventBus);
   });
 
-  it('should pass bootstrap validation when all four vital mocks are registered', async () => {
+  it('should pass bootstrap validation when all five vital mocks are registered', async () => {
     const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
     const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
     const { InMemoryVault } = await import('../../src/core/InMemoryVault');
     const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
     registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).resolves.toBeUndefined();
@@ -32,10 +34,12 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
     const { InMemoryVault } = await import('../../src/core/InMemoryVault');
     const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
     registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
@@ -45,10 +49,12 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
     const { InMemoryVault } = await import('../../src/core/InMemoryVault');
     const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryVault());
     registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
@@ -58,10 +64,12 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
     const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
     const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
@@ -71,10 +79,12 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     const { InMemoryStateManager } = await import('../../src/core/InMemoryStateManager');
     const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
     const { InMemoryVault } = await import('../../src/core/InMemoryVault');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
@@ -85,11 +95,13 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
     const { InMemoryVault } = await import('../../src/core/InMemoryVault');
     const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
     registry.register(new InMemoryModelDriver(false)); // unhealthy
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
@@ -100,6 +112,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     const { InMemoryMemoryEngine } = await import('../../src/core/InMemoryMemoryEngine');
     const { InMemoryVault } = await import('../../src/core/InMemoryVault');
     const { InMemoryModelDriver } = await import('../../src/core/InMemoryModelDriver');
+    const { InMemoryTraceLog } = await import('../../src/core/InMemoryTraceLog');
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
@@ -115,6 +128,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
 
     registry.register(new InMemoryVault());
     registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).resolves.toBeUndefined();

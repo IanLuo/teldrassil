@@ -22,11 +22,12 @@ describe('BootstrapSequence', () => {
     registry = new PluginRegistry(eventBus);
   });
 
-  it('should succeed when all four vital plugins are registered and healthy', async () => {
+  it('should succeed when all five vital plugins are registered and healthy', async () => {
     registry.register(createVitalPlugin('State'));
     registry.register(createVitalPlugin('Memory'));
     registry.register(createVitalPlugin('Vault'));
     registry.register(createVitalPlugin('Driver'));
+    registry.register(createVitalPlugin('Trace'));
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).resolves.toBeUndefined();
@@ -36,32 +37,35 @@ describe('BootstrapSequence', () => {
     registry.register(createVitalPlugin('State'));
     registry.register(createVitalPlugin('Memory'));
     registry.register(createVitalPlugin('Vault'));
-    // Driver is missing
+    registry.register(createVitalPlugin('Driver'));
+    // Trace is missing
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
-    await expect(bootstrap.execute()).rejects.toThrow(/Driver/i);
+    await expect(bootstrap.execute()).rejects.toThrow(/Trace/i);
   });
 
   it('should throw SystemExit when multiple vital plugins are missing', async () => {
     registry.register(createVitalPlugin('State'));
-    // Memory, Vault, Driver are missing
+    // Memory, Vault, Driver, Trace are missing
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
     await expect(bootstrap.execute()).rejects.toThrow(/Memory/i);
   });
 
-  it('should ping all four vital plugins during bootstrap', async () => {
+  it('should ping all five vital plugins during bootstrap', async () => {
     const statePlugin = createVitalPlugin('State');
     const memoryPlugin = createVitalPlugin('Memory');
     const vaultPlugin = createVitalPlugin('Vault');
     const driverPlugin = createVitalPlugin('Driver');
+    const tracePlugin = createVitalPlugin('Trace');
 
     registry.register(statePlugin);
     registry.register(memoryPlugin);
     registry.register(vaultPlugin);
     registry.register(driverPlugin);
+    registry.register(tracePlugin);
 
     const bootstrap = new BootstrapSequence(registry);
     await bootstrap.execute();
@@ -70,6 +74,7 @@ describe('BootstrapSequence', () => {
     expect(memoryPlugin.ping).toHaveBeenCalledTimes(1);
     expect(vaultPlugin.ping).toHaveBeenCalledTimes(1);
     expect(driverPlugin.ping).toHaveBeenCalledTimes(1);
+    expect(tracePlugin.ping).toHaveBeenCalledTimes(1);
   });
 
   it('should throw SystemExit when a vital plugin fails its health ping', async () => {
@@ -77,6 +82,7 @@ describe('BootstrapSequence', () => {
     registry.register(createVitalPlugin('Memory', true));
     registry.register(createVitalPlugin('Vault', false)); // fails ping
     registry.register(createVitalPlugin('Driver', true));
+    registry.register(createVitalPlugin('Trace', true));
 
     const bootstrap = new BootstrapSequence(registry);
     await expect(bootstrap.execute()).rejects.toThrow(SystemExit);
@@ -87,6 +93,7 @@ describe('BootstrapSequence', () => {
     registry.register(createVitalPlugin('State'));
     registry.register(createVitalPlugin('Memory'));
     registry.register(createVitalPlugin('Vault'));
+    registry.register(createVitalPlugin('Trace'));
     registry.register({
       name: 'Driver',
       version: '1.0.0',

@@ -2,19 +2,22 @@ import { MicroKernel } from './core/MicroKernel';
 import { EnvVaultPlugin } from './core/EnvVaultPlugin';
 import { LocalMemoryPlugin } from './core/LocalMemoryPlugin';
 import { LocalStatePlugin } from './core/LocalStatePlugin';
+import { LocalJsonTracePlugin } from './core/LocalJsonTracePlugin';
 import { AnthropicDriver } from './core/AnthropicDriver';
+import path from 'path';
 
 /**
  * Teldrassil CLI Entry Point
  *
- * Bootstraps the MicroKernel with all four vital plugins
- * (State, Memory, Vault, Driver) and reports status.
+ * Bootstraps the MicroKernel with all five vital plugins
+ * (State, Memory, Vault, Driver, Trace) and reports status.
  *
  * Usage: npx tsx src/index.ts
  *   MASTER_KEY=your-key npx tsx src/index.ts
  */
 async function main(): Promise<void> {
   const masterKey = process.env.MASTER_KEY || 'teldrassil-default-key';
+  const traceDir = path.join(process.cwd(), '.teldrassil', 'trace');
 
   const kernel = new MicroKernel();
 
@@ -23,6 +26,7 @@ async function main(): Promise<void> {
   kernel.register(new LocalMemoryPlugin(masterKey));
   kernel.register(new EnvVaultPlugin(masterKey));
   kernel.register(new AnthropicDriver());
+  kernel.register(new LocalJsonTracePlugin(traceDir));
 
   await kernel.init();
 

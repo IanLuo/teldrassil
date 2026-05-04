@@ -35,6 +35,7 @@ describe('MicroKernel', () => {
       kernel.register(createVitalPlugin('Memory'));
       kernel.register(createVitalPlugin('Vault'));
       kernel.register(createVitalPlugin('Driver'));
+      kernel.register(createVitalPlugin('Trace'));
       await expect(kernel.init()).resolves.toBeUndefined();
     });
 
@@ -51,6 +52,7 @@ describe('MicroKernel', () => {
       kernel.register(createVitalPlugin('Memory'));
       kernel.register(createVitalPlugin('Vault', false)); // fails ping
       kernel.register(createVitalPlugin('Driver'));
+      kernel.register(createVitalPlugin('Trace'));
       await expect(kernel.init()).rejects.toThrow(SystemExit);
       await expect(kernel.init()).rejects.toThrow(/Vault/i);
     });
@@ -59,6 +61,7 @@ describe('MicroKernel', () => {
       kernel.register(createVitalPlugin('State'));
       kernel.register(createVitalPlugin('Memory'));
       kernel.register(createVitalPlugin('Vault'));
+      kernel.register(createVitalPlugin('Trace'));
       kernel.register({ name: 'Driver', version: '1.0.0', initialize: vi.fn() });
       await expect(kernel.init()).rejects.toThrow(SystemExit);
       await expect(kernel.init()).rejects.toThrow(/Driver/i);
@@ -73,6 +76,7 @@ describe('MicroKernel', () => {
       kernel.register(createVitalPlugin('Memory'));
       kernel.register(createVitalPlugin('Vault'));
       kernel.register(createVitalPlugin('Driver'));
+      kernel.register(createVitalPlugin('Trace'));
       await kernel.init();
 
       expect(handler).toHaveBeenCalledTimes(1);
@@ -89,12 +93,14 @@ describe('MicroKernel', () => {
       const memoryPlugin = createVitalPlugin('Memory');
       const vaultPlugin = createVitalPlugin('Vault');
       const driverPlugin = createVitalPlugin('Driver');
+      const tracePlugin = createVitalPlugin('Trace');
       const extPlugin = createExtensionPlugin('mcp-bridge');
 
       kernel.register(statePlugin);
       kernel.register(memoryPlugin);
       kernel.register(vaultPlugin);
       kernel.register(driverPlugin);
+      kernel.register(tracePlugin);
       kernel.register(extPlugin);
 
       await kernel.shutdown();
@@ -103,6 +109,7 @@ describe('MicroKernel', () => {
       expect(memoryPlugin.shutdown).toHaveBeenCalledTimes(1);
       expect(vaultPlugin.shutdown).toHaveBeenCalledTimes(1);
       expect(driverPlugin.shutdown).toHaveBeenCalledTimes(1);
+      expect(tracePlugin.shutdown).toHaveBeenCalledTimes(1);
       expect(extPlugin.shutdown).toHaveBeenCalledTimes(1);
     });
 
@@ -137,6 +144,7 @@ describe('MicroKernel', () => {
       expect(() => kernel.detach('Memory')).toThrow(SystemExit);
       expect(() => kernel.detach('Vault')).toThrow(SystemExit);
       expect(() => kernel.detach('Driver')).toThrow(SystemExit);
+      expect(() => kernel.detach('Trace')).toThrow(SystemExit);
     });
 
     it('should succeed when detaching a non-vital plugin', () => {
@@ -214,6 +222,7 @@ describe('MicroKernel', () => {
       kernel.register(createVitalPlugin('Memory'));
       kernel.register(createVitalPlugin('Vault'));
       kernel.register(createVitalPlugin('Driver'));
+      kernel.register(createVitalPlugin('Trace'));
       await kernel.init();
 
       bus.publish('test:topic', { data: 'payload' });

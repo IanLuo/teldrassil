@@ -1,19 +1,25 @@
 import { describe, it, expect } from 'vitest';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
 import { MicroKernel } from '../../src/core/MicroKernel';
 import { LocalStatePlugin } from '../../src/core/LocalStatePlugin';
 import { LocalMemoryPlugin } from '../../src/core/LocalMemoryPlugin';
 import { EnvVaultPlugin } from '../../src/core/EnvVaultPlugin';
 import { AnthropicDriver } from '../../src/core/AnthropicDriver';
+import { LocalJsonTracePlugin } from '../../src/core/LocalJsonTracePlugin';
 
 describe('CLI Entry Point', () => {
-  it('should bootstrap kernel with all four vital plugins', async () => {
+  it('should bootstrap kernel with all five vital plugins', async () => {
     const kernel = new MicroKernel();
     const masterKey = 'cli-integration-key';
+    const traceDir = path.join(os.tmpdir(), `teldrassil-cli-trace-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin(masterKey));
     kernel.register(new EnvVaultPlugin(masterKey));
     kernel.register(new AnthropicDriver('claude-sonnet-4'));
+    kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
 
@@ -23,8 +29,13 @@ describe('CLI Entry Point', () => {
     expect(registry.getPlugin('Memory')).toBeDefined();
     expect(registry.getPlugin('Vault')).toBeDefined();
     expect(registry.getPlugin('Driver')).toBeDefined();
+    expect(registry.getPlugin('Trace')).toBeDefined();
 
     await kernel.shutdown();
+
+    if (fs.existsSync(traceDir)) {
+      fs.rmSync(traceDir, { recursive: true, force: true });
+    }
   });
 
   it('should read master key from environment variable', () => {
@@ -43,11 +54,11 @@ describe('CLI Entry Point', () => {
 
   it('should handle SystemExit on missing vital plugin', async () => {
     const kernel = new MicroKernel();
-    // Only register 3 of 4 — intentionally skip Vault
+    // Only register 2 of 5 — intentionally skip Vault, Driver, Trace
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
 
-    // Missing Vault and Driver should trigger SystemExit
+    // Missing Vault, Driver, and Trace should trigger SystemExit
     await expect(kernel.init()).rejects.toThrow();
   });
 });
