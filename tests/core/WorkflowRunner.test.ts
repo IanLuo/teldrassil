@@ -639,4 +639,89 @@ describe('WorkflowRunner', () => {
     expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
     // The wrong-id response was sent but the runner ignored it and waited for the right one
   });
+
+  // 13. Evaluator returning PROCEED
+  it('should invoke evaluator and proceed when evaluator returns PROCEED', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'step_with_eval', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 }
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    let evalCallCount = 0;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        evalCallCount++;
+        return { content: 'Looks good. PROCEED.' };
+      }
+      return { content: 'agent output' };
+    });
+    const traceLog = createInMemoryTraceLog();
+    const appendTraceSpy = vi.spyOn(traceLog, 'appendTrace');
+
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(traceLog);
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(evalCallCount).toBe(1);
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+
+    // Verify TraceLog logged EvaluatorDecision
+    const evalTraces = appendTraceSpy.mock.calls.filter(call => 
+      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
+    );
+    expect(evalTraces).toHaveLength(1);
+    expect(evalTraces[0][0]).toMatchObject({
+      type: 'EvaluatorDecision',
+      step: 'step_with_eval',
+      evaluator: 'evaluator_agent',
+      decision: 'PROCEED'
+    });
+  });
+
+  // 14. Evaluator returning REWORK
+  it('should invoke evaluator and rework when evaluator returns REWORK', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'step_with_eval', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 3 }
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    let agentCallCount = 0;
+    let evalCallCount = 0;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        evalCallCount++;
+        if (evalCallCount === 1) return { content: 'Needs work. REWORK.' };
+        return { content: 'PROCEED.' };
+      }
+      agentCallCount++;
+      return { content: `agent output ${agentCallCount}` };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(agentCallCount).toBe(2);
+    expect(evalCallCount).toBe(2);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+    expect(result.steps[0].retries).toBe(1);
+  });
 });

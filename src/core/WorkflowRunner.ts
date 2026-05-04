@@ -80,6 +80,37 @@ export class WorkflowRunner {
 
         output = result.content;
 
+        let evaluatorDecision: string | null = null;
+        if (step.evaluator) {
+          const evalAgent = this.resolveAgent(step.evaluator);
+          const evalDriver = this.getDriver(evalAgent.use_driver);
+
+          if (!evalDriver.generate) {
+            throw new Error(
+              `Driver '${evalAgent.use_driver}' does not support generate()`
+            );
+          }
+
+          const evalMessages = this.buildEvaluatorMessages(step, evalAgent, output);
+          const evalResult = await evalDriver.generate({
+            model: evalAgent.model,
+            messages: evalMessages,
+            tools: evalAgent.tools as unknown[],
+          });
+
+          const evalOutput = evalResult.content;
+          evaluatorDecision = evalOutput.includes('REWORK') ? 'REWORK' : 'PROCEED';
+
+          this.getTraceLog().appendTrace({
+            type: 'EvaluatorDecision',
+            step: step.step,
+            evaluator: step.evaluator,
+            decision: evaluatorDecision,
+            reason: evalOutput,
+            timestamp: new Date().toISOString()
+          });
+        }
+
         const supervisorInput: SupervisorInput = {
           output,
           retryCount: stepRetries,
@@ -90,6 +121,10 @@ export class WorkflowRunner {
         };
 
         decision = Supervisor.evaluate(supervisorInput);
+
+        if (evaluatorDecision === 'REWORK' && (decision === SupervisorDecision.PROCEED || decision === SupervisorDecision.COMPLETE)) {
+          decision = SupervisorDecision.REWORK;
+        }
 
         await recordRouteDecision(this.getTraceLog(), {
           from: step.step,
@@ -230,6 +265,19 @@ export class WorkflowRunner {
       {
         role: 'user',
         content: `Execute step: ${step.step}`,
+      },
+    ];
+  }
+
+  private buildEvaluatorMessages(step: SequenceStep, agent: AgentConfig, output: string): Message[] {
+    return [
+      {
+        role: 'system',
+        content: `You are evaluator "${agent.id}". Evaluate the output of step "${step.step}". Respond with "PROCEED" if it meets the requirements, or "REWORK" if it needs changes.`,
+      },
+      {
+        role: 'user',
+        content: `Output to evaluate:\n${output}`,
       },
     ];
   }
