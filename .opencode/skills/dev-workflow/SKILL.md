@@ -42,16 +42,21 @@ This workflow applies ONLY to development tasks: code implementation, bug fixes,
 - **DENY:** NEVER write implementation before a failing test exists.
 
 ### Step 4: Review Gate (PASS or FAIL)
-- Run `pnpm test` — all tests MUST pass.
-- Read the original task description and execution plan from Step 1. Compare ALL changes against what was planned.
-- Verify EVERY requirement is met:
-  - Are all test cases from the plan implemented?
-  - Are edge cases covered?
-  - Are security concerns addressed (no credential leaks, no plaintext secrets)?
-  - Are there any side effects or unintended mutations?
-- Check for extraneous changes: nothing beyond the task scope was introduced.
-- **PASSED** → Proceed to Step 5 (Commit).
-- **FAILED** → Return to Step 3 and fix the gaps. Do NOT skip review. Output what specifically failed and what needs to change.
+
+You MUST output this checklist and check EVERY item before proceeding. If this checklist does not appear in your response, the review did not happen.
+
+```
+## Review Gate
+- [ ] All tests pass (`pnpm test`)
+- [ ] Every requirement from the task description is met
+- [ ] All planned test cases are implemented
+- [ ] Edge cases covered
+- [ ] No security issues (credential leaks, plaintext secrets, side effects)
+- [ ] No extraneous changes beyond task scope
+```
+
+- **PASSED** → All boxes checked → Proceed to Step 5 (Commit).
+- **FAILED** → Any box unchecked → Return to Step 3 and fix the gaps. Output what specifically failed and what needs to change. Do NOT proceed to commit.
 
 ### Step 5: Commit Changes
 - Run `git add` for the relevant source files AND test files (NOT docs/tasks/plan.md).
