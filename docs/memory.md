@@ -20,3 +20,7 @@ This file is loaded into every session via `opencode.json` instructions, so keep
 - `swap()` normalizes plugin name to vital slot name (e.g., `AzureVault` → `Vault`) so BootstrapSequence can find it.
 - `swap()` only accepts vital slot names — extension plugins use `detach()` + `register()`.
 - `ping()` is optional on the Plugin interface; BootstrapSequence checks for its presence.
+
+## Memory Engine patterns - 2026-05-04
+- Disk-persistent plugins should treat disk as the source of truth, not in-memory caches. Caching on `put()` time causes stale-data bugs when files are modified or deleted externally.
+- Session isolation via different directories works, but if two sessions share the same DEK and same key, their URI signatures collide. Unique DEKs per session are required for cryptographic isolation.
