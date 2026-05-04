@@ -66,5 +66,5 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 8.4 **Refactor:** Fix Workflow Runner. Update `WorkflowRunner.ts` to fetch the driver using `agent.use_driver` instead of the hardcoded `'Driver'` slot.
 * [x] 8.5 **Feature:** Wire Wildcard Rule. Update `Supervisor.evaluate()` to invoke `WildcardRule.evaluate()` for diversity scoring when applicable.
 * [x] 8.6 **Feature:** Wire Evaluator Agents. Update `WorkflowRunner.ts` to invoke the agent defined in the `evaluator` field (if present) for binary PROCEED/REWORK decisions, logging findings to the `TraceLog`.
-* [ ] 8.7 **Refactor:** Zod Manifest Validation. Replace the hand-rolled YAML parser in `ManifestParser.ts` with strict schema validation using `zod` and `js-yaml`.
+* [x] 8.7 **Refactor:** Zod Manifest Validation. Replace the hand-rolled YAML parser in `ManifestParser.ts` with strict schema validation using `zod` and `js-yaml`.
 * [ ] 8.8 **Docs:** Fix `IMemoryEngine` JSDoc (remove `@throws Unauthorized` since it returns `null`) and clean up `IVault` (remove or document the dead `injectCredential` method).
