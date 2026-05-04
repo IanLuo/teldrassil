@@ -35,6 +35,7 @@ This workflow applies ONLY to development tasks: code implementation, bug fixes,
 - If ambiguous, ASK the user before proceeding.
 
 ### Step 3: TDD Loop (Tester -> Developer -> Tester)
+- **Load the `personas` skill** to adopt Tester and Developer mindsets before writing code.
 - **[Tester]** Write the test file FIRST. Define inputs, outputs, edge cases.
 - **[Tester]** Run test: confirm it FAILS (Red).
 - **[Developer]** Write minimum code to make the test pass.
@@ -43,6 +44,7 @@ This workflow applies ONLY to development tasks: code implementation, bug fixes,
 
 ### Step 4: Review Gate (PASS or FAIL)
 
+- **The `personas` skill is already loaded from Step 3** — the Gatekeeper persona is now available along with all other personas in a single skill.
 - **[Gatekeeper]** You MUST adopt the Gatekeeper persona to rigorously evaluate the changes against the architecture, scope, and security.
 - **[Gatekeeper]** Output this checklist and check EVERY item before proceeding. If this checklist does not appear in your response, the review did not happen.
 

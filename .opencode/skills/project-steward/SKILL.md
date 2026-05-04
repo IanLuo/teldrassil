@@ -1,7 +1,6 @@
 ---
 name: project-steward
 description: Project guardian that evaluates proposed changes against Teldrassil's design, challenges weak reasoning, searches for solutions, and keeps design docs and task plans coherent.
-requires: [personas, evaluate-persona]
 ---
 
 # project-steward
@@ -51,14 +50,16 @@ When user proposes a change, run this process fresh every time. The design docs 
 
 ### 3.2 Evaluate through personas
 
-Load and apply personas in sequence:
+**Load the `personas` skill** — all six personas (Gatekeeper, Reviewer, Tester, Strategist, Developer, Document Maintainer) are now in a single skill.
 
-| Order | Persona | Source skill | What it checks |
-|-------|---------|-------------|----------------|
-| 1 | **Gatekeeper** | `evaluate-persona` | Boundary violations (immutable hard stops, soft challenges) |
-| 2 | **Reviewer** | `personas` | Security (credential leaks, plaintext secrets, side effects) |
-| 3 | **Tester** | `personas` | Testability (pass/fail conditions, edge cases) |
-| 4 | **Strategist** | `evaluate-persona` | Goal alignment, scope, priority, detour detection |
+Apply personas in sequence:
+
+| Order | Persona | What it checks |
+|-------|---------|----------------|
+| 1 | **Gatekeeper** | Boundary violations (immutable hard stops, soft challenges) |
+| 2 | **Reviewer** | Security (credential leaks, plaintext secrets, side effects) |
+| 3 | **Tester** | Testability (pass/fail conditions, edge cases) |
+| 4 | **Strategist** | Goal alignment, scope, priority, detour detection |
 
 Apply each persona in sequence. If any persona outputs a hard reject, stop — the change does not proceed.
 
