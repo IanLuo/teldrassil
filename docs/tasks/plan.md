@@ -61,7 +61,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 ## Phase 8: Architecture Rectification
 * [x] 8.1 **Refactor:** Purge `AnthropicDriver`. Delete `AnthropicDriver.ts` and its tests, and update `src/index.ts` and integration tests to use `UnifiedModelDriver` exclusively.
-* [ ] 8.2 **Refactor:** Dynamic Plugin Naming. Update drivers (`UnifiedModelDriver`, `HostFunctionDriver`, `InMemoryModelDriver`) to accept an `id` in their constructor instead of hardcoding `name = 'Driver'`, allowing multiple drivers to coexist in the `PluginRegistry`.
+* [x] 8.2 **Refactor:** Dynamic Plugin Naming. Update drivers (`UnifiedModelDriver`, `HostFunctionDriver`, `InMemoryModelDriver`) to accept an `id` in their constructor instead of hardcoding `name = 'Driver'`, allowing multiple drivers to coexist in the `PluginRegistry`.
 * [ ] 8.3 **Refactor:** Fix Kernel Bootstrap. Update `BootstrapSequence.ts` to drop the hardcoded check for the exact name `'Driver'` and instead verify that required drivers are present.
 * [ ] 8.4 **Refactor:** Fix Workflow Runner. Update `WorkflowRunner.ts` to fetch the driver using `agent.use_driver` instead of the hardcoded `'Driver'` slot.
 * [ ] 8.5 **Feature:** Wire Wildcard Rule. Update `Supervisor.evaluate()` to invoke `WildcardRule.evaluate()` for diversity scoring when applicable.
