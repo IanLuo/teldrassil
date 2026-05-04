@@ -1,15 +1,43 @@
 ---
 name: dev-workflow
-description: Enforces a strict 6-step development loop for Teldrassil: plan, design alignment, TDD, review gate (pass/fail), commit, and persist. Use when starting any code implementation, bug fix, or configuration change.
+description: Enforces a strict 6-step development loop for Teldrassil. Orchestrator mode dispatches fresh subagents per task (clean context per task). Worker mode executes one task: plan, design alignment, TDD, review gate (pass/fail), commit, and persist. Use when starting any code implementation, bug fix, or configuration change.
 ---
 
 # dev-workflow
 
+## Mode Selection: Orchestrator vs Worker
+
+**Determine which role you are BEFORE proceeding:**
+
+### Orchestrator Mode (you see multiple `[ ]` tasks in plan.md)
+You are the session agent. For each pending dev task, spawn a FRESH subagent — each gets a clean context with zero conversation history. This enforces that `plan.md`, `design.md`, and `memory.md` are self-sufficient without leaked context from prior tasks.
+
+**Orchestrator loop:**
+1. Read `docs/tasks/plan.md`, `docs/design.md`, `docs/detailed-components.md`, and `docs/memory.md`.
+2. Sanity check: fix any stale `[⏳]` tasks that are actually complete.
+3. Find the first `[ ]` task. If none, all done — stop.
+4. Mark it `[⏳]` and output the execution plan (same format as Worker Step 1).
+5. Construct a subagent prompt containing:
+   - The task ID and description from plan.md
+   - Relevant constraints from design.md / detailed-components.md
+   - Relevant lessons from memory.md
+   - Instructions to load `dev-workflow` and `personas` skills, then execute Worker Steps 2-6 (skip Step 1 — initialization already done).
+6. Dispatch: `Task(description="Execute task [ID]", prompt="[constructed prompt]", subagent_type="general")`.
+7. When subagent returns, verify plan.md shows `[x]` and source is committed.
+8. Repeat from step 2 for the next task.
+
+**DENY in orchestrator mode:** Do NOT execute task code yourself. Always dispatch to a fresh subagent.
+
+### Worker Mode (you are a subagent executing ONE specific task)
+Follow the 6-step loop below. Your task was already assigned by the orchestrator — you have exactly one task to complete.
+
+**Non-dev tasks** (design proposals, architecture discussions, documentation, investigation) are collaborative — discuss freely with the user, propose drafts, and let the user decide when done. Do NOT apply this workflow to non-dev tasks. When unsure whether a task qualifies, ASK the user.
+
+---
+
 ## CRITICAL: 6-Step Development Loop
 
 This workflow applies ONLY to development tasks: code implementation, bug fixes, configuration changes. You MUST follow these steps IN ORDER for every dev task. Each step has a required output. Skip NONE.
-
-**Non-dev tasks** (design proposals, architecture discussions, documentation, investigation) are collaborative — discuss freely with the user, propose drafts, and let the user decide when done. Do NOT apply this workflow to non-dev tasks. When unsure whether a task qualifies, ASK the user.
 
 ### Step 1: Initialize & Plan
 - Read `docs/tasks/plan.md` and identify the next `[ ]` task.
