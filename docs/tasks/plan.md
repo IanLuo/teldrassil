@@ -4,7 +4,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 
 > **Important Workflow Rule:** We operate under strict TDD and adhere to the `dev-workflow` skill. Before executing any step here, ensure you have read the design docs and understand the current state.
 > 
-> **Current State:** PHASES 1-6 COMPLETE. Beginning Phase 7 (Execution & App Backbone).
+> **Current State:** Phases 1-6 complete. Phase 7 in progress (7.1 done).
 
 ## Phase 1: Environment & Tooling
 * [x] 1.1 Create `dev-workflow` skill folder and `SKILL.md` outlining the 5-step strict process (status check, design check, TDD loop, review loop, memory update).
@@ -50,11 +50,11 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 6.4 Build the "Human-Attach" override modal triggered by a `HUMAN_REQUIRED` kernel event.
 
 ## Phase 7: Execution & App Backbone
-* [ ] 7.1 **Durable State:** Implement `LocalJsonStatePlugin` with disk persistence (`/.teldrassil/state`) enforcing the strict 4KB pointer-only limit.
+* [x] 7.1 **Durable State:** Implement `LocalJsonStatePlugin` with disk persistence (`/.teldrassil/state`) enforcing the strict 4KB pointer-only limit.
 * [ ] 7.2 **Durable Memory:** Implement `LocalFileMemoryPlugin` with AES encryption and filesystem persistence (`/.teldrassil/memory`).
 * [ ] 7.3 **Trace Log:** Implement `LocalJsonTracePlugin` and the `ITraceLog` interface for observability, routing metadata, and LLM I/O.
 * [ ] 7.4 **Unified LLM Driver:** Implement `UnifiedModelDriver` implementing `generate()` via `@ai-sdk/core`, integrating Vault credentials.
 * [ ] 7.5 **Deterministic Driver:** Implement `HostFunctionDriver` for zero-cost, deterministic local code execution.
 * [ ] 7.6 **Structured Routing:** Extend `SupervisorDecision` to 5-enum and create `RouteDecision` metadata struct written to Trace Log.
-* [ ] 7.7 **Workflow Runner:** Implement the DAG execution loop (`WorkflowRunner`) that executes the manifest sequence.
+* [ ] 7.7 **Workflow Runner:** Implement the workflow execution loop (`WorkflowRunner`) that executes the manifest sequence.
 * [ ] 7.8 **Human Interaction:** Wire the `HUMAN_REQUIRED` event and protocol (HumanInputRequest/Result) to the runner.
