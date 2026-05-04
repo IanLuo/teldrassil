@@ -23,7 +23,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
-    registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryModelDriver('Driver'));
     registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
@@ -38,7 +38,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
 
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
-    registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryModelDriver('Driver'));
     registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
@@ -53,7 +53,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryVault());
-    registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryModelDriver('Driver'));
     registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
@@ -68,7 +68,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
 
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
-    registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryModelDriver('Driver'));
     registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
@@ -100,7 +100,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     registry.register(new InMemoryStateManager());
     registry.register(new InMemoryMemoryEngine());
     registry.register(new InMemoryVault());
-    registry.register(new InMemoryModelDriver(false)); // unhealthy
+    registry.register(new InMemoryModelDriver('Driver', false)); // unhealthy
     registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);
@@ -127,7 +127,7 @@ describe('InMemoryMocks — BootstrapSequence integration', () => {
     registry.register(new ExtraPlugin() as any);
 
     registry.register(new InMemoryVault());
-    registry.register(new InMemoryModelDriver());
+    registry.register(new InMemoryModelDriver('Driver'));
     registry.register(new InMemoryTraceLog());
 
     const bootstrap = new BootstrapSequence(registry);

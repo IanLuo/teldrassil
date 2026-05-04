@@ -7,13 +7,14 @@ interface ParsedModel {
 }
 
 export class UnifiedModelDriver implements IModelDriver {
-  readonly name = 'Driver';
+  readonly name: string;
   readonly version = '0.1.0';
 
   private vault: IVault;
   private secretKeyMap: Record<string, string>;
 
-  constructor(vault: IVault, secretKeyMap: Record<string, string>) {
+  constructor(id: string, vault: IVault, secretKeyMap: Record<string, string>) {
+    this.name = id;
     this.vault = vault;
     this.secretKeyMap = secretKeyMap;
   }

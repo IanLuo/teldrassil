@@ -29,7 +29,7 @@ describe('MicroKernel — Integration', () => {
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('master-key-for-integration'));
     kernel.register(vault);
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await expect(kernel.init()).resolves.toBeUndefined();
@@ -47,7 +47,7 @@ describe('MicroKernel — Integration', () => {
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
     kernel.register(vault);
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -67,7 +67,7 @@ describe('MicroKernel — Integration', () => {
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
     kernel.register(vault);
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -81,7 +81,7 @@ describe('MicroKernel — Integration', () => {
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
     kernel.register(vault);
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -102,7 +102,7 @@ describe('MicroKernel — Integration', () => {
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
     kernel.register(vault);
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();
@@ -119,7 +119,7 @@ describe('MicroKernel — Integration', () => {
     kernel.register(new LocalStatePlugin());
     kernel.register(new LocalMemoryPlugin('key'));
     kernel.register(vault);
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();

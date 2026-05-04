@@ -7,12 +7,13 @@ import type { IModelDriver, Message, VendorPayload, DriverCapabilities } from '.
  * @param healthy — if false, ping() returns false to simulate a failed health check
  */
 export class InMemoryModelDriver implements IModelDriver {
-  readonly name = 'Driver';
+  readonly name: string;
   readonly version = '0.1.0-mock';
 
   private healthy: boolean;
 
-  constructor(healthy = true) {
+  constructor(id: string, healthy = true) {
+    this.name = id;
     this.healthy = healthy;
   }
 

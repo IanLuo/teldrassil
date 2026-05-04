@@ -18,12 +18,13 @@ export type HostFunction = (input: { messages: Message[]; schema?: unknown }) =>
  * @see docs/detailed-components.md §6.2 — Implementations
  */
 export class HostFunctionDriver implements IModelDriver {
-  readonly name = 'Driver';
+  readonly name: string;
   readonly version = '0.1.0';
 
   private functions: Record<string, HostFunction>;
 
-  constructor(functions: Record<string, HostFunction>) {
+  constructor(id: string, functions: Record<string, HostFunction>) {
+    this.name = id;
     this.functions = functions;
   }
 

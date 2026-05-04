@@ -21,7 +21,7 @@ describe('CLI Entry Point', () => {
     const vault = new EnvVaultPlugin(masterKey);
     kernel.register(vault);
     
-    kernel.register(new UnifiedModelDriver(vault, { anthropic: 'ANTHROPIC_API_KEY' }));
+    kernel.register(new UnifiedModelDriver('Driver', vault, { anthropic: 'ANTHROPIC_API_KEY' }));
     kernel.register(new LocalJsonTracePlugin(traceDir));
 
     await kernel.init();

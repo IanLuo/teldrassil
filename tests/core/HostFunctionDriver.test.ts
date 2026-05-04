@@ -5,18 +5,18 @@ import type { Message, GenerateOptions } from '../../src/core/IModelDriver';
 describe('HostFunctionDriver', () => {
   describe('plugin identity', () => {
     it('should be named Driver for BootstrapSequence', () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       expect(driver.name).toBe('Driver');
     });
 
     it('should have a working ping that returns true', async () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const result = await driver.ping!();
       expect(result).toBe(true);
     });
 
     it('should have no-op initialize and shutdown', () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       expect(() => driver.initialize()).not.toThrow();
       expect(() => driver.shutdown!()).not.toThrow();
     });
@@ -25,7 +25,7 @@ describe('HostFunctionDriver', () => {
   describe('generate', () => {
     it('should call the registered function with the action_id from model field', async () => {
       const mockFn = vi.fn().mockResolvedValue('processed');
-      const driver = new HostFunctionDriver({ requirementNormalizer: mockFn });
+      const driver = new HostFunctionDriver('Driver', { requirementNormalizer: mockFn });
 
       const options: GenerateOptions = {
         model: 'requirementNormalizer',
@@ -44,7 +44,7 @@ describe('HostFunctionDriver', () => {
 
     it('should pass messages and schema to the host function', async () => {
       const mockFn = vi.fn().mockResolvedValue('result');
-      const driver = new HostFunctionDriver({ myAction: mockFn });
+      const driver = new HostFunctionDriver('Driver', { myAction: mockFn });
 
       const schema = { type: 'object', properties: { name: { type: 'string' } } };
       const messages: Message[] = [
@@ -65,7 +65,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should return the function result as content', async () => {
-      const driver = new HostFunctionDriver({
+      const driver = new HostFunctionDriver('Driver', {
         echo: async (input) => `Echo: ${input.messages[0].content}`,
       });
 
@@ -80,7 +80,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should throw when action_id is not registered', async () => {
-      const driver = new HostFunctionDriver({ knownAction: async () => 'ok' });
+      const driver = new HostFunctionDriver('Driver', { knownAction: async () => 'ok' });
 
       await expect(
         driver.generate!({
@@ -91,7 +91,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should handle sync host functions', async () => {
-      const driver = new HostFunctionDriver({
+      const driver = new HostFunctionDriver('Driver', {
         syncFn: (input) => `Sync: ${input.messages.length} messages`,
       });
 
@@ -107,7 +107,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should handle async host functions', async () => {
-      const driver = new HostFunctionDriver({
+      const driver = new HostFunctionDriver('Driver', {
         asyncFn: async (input) => {
           return `Async: ${input.messages[0].content}`;
         },
@@ -122,7 +122,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should work with multiple registered functions independently', async () => {
-      const driver = new HostFunctionDriver({
+      const driver = new HostFunctionDriver('Driver', {
         fnA: async () => 'resultA',
         fnB: async () => 'resultB',
         fnC: async () => 'resultC',
@@ -149,7 +149,7 @@ describe('HostFunctionDriver', () => {
 
   describe('translate', () => {
     it('should translate unified messages to host vendor payload', async () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const messages: Message[] = [
         { role: 'system', content: 'You are helpful.' },
         { role: 'user', content: 'Hello!' },
@@ -166,7 +166,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should include tool_call_id for tool role messages', async () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const messages: Message[] = [
         { role: 'tool', content: 'result', tool_call_id: 'call_123' },
       ];
@@ -182,7 +182,7 @@ describe('HostFunctionDriver', () => {
 
   describe('countTokens', () => {
     it('should return a positive estimate', async () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const tokens = await driver.countTokens([
         { role: 'user', content: 'Hello world!' },
       ]);
@@ -190,7 +190,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should increase with longer content', async () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const short = await driver.countTokens([{ role: 'user', content: 'hi' }]);
       const long = await driver.countTokens([
         { role: 'user', content: 'This is a much longer message that should result in more tokens counted.' },
@@ -199,7 +199,7 @@ describe('HostFunctionDriver', () => {
     });
 
     it('should return at least 1 for empty messages', async () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const tokens = await driver.countTokens([]);
       expect(tokens).toBeGreaterThanOrEqual(1);
     });
@@ -207,7 +207,7 @@ describe('HostFunctionDriver', () => {
 
   describe('getCapabilities', () => {
     it('should report local deterministic capabilities', () => {
-      const driver = new HostFunctionDriver({});
+      const driver = new HostFunctionDriver('Driver', {});
       const caps = driver.getCapabilities();
 
       expect(caps.maxContextTokens).toBe(Infinity);

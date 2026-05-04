@@ -30,7 +30,7 @@ describe('UnifiedModelDriver', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vault = createMockVault({ api_anthropic: 'sk-ant-mock', api_openai: 'sk-openai-mock' });
-    driver = new UnifiedModelDriver(vault, {
+    driver = new UnifiedModelDriver('Driver', vault, {
       anthropic: 'api_anthropic',
       openai: 'api_openai',
       google: 'api_google',

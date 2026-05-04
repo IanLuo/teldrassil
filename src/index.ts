@@ -28,7 +28,7 @@ async function main(): Promise<void> {
   const vault = new EnvVaultPlugin(masterKey);
   kernel.register(vault);
   
-  kernel.register(new UnifiedModelDriver(vault, {
+  kernel.register(new UnifiedModelDriver('Driver', vault, {
     anthropic: 'ANTHROPIC_API_KEY',
     openai: 'OPENAI_API_KEY',
     google: 'GOOGLE_API_KEY'
