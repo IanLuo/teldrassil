@@ -53,6 +53,39 @@ export interface DriverCapabilities {
 }
 
 /**
+ * Options for the generate() method.
+ */
+export interface GenerateOptions {
+  /** Model string in "provider:model-id" format (e.g., "anthropic:claude-3-5-sonnet") */
+  model: string;
+  /** Unified message list */
+  messages: Message[];
+  /** Optional tool definitions */
+  tools?: unknown[];
+  /** Optional structured output schema */
+  schema?: unknown;
+  /** Maximum tokens to generate */
+  maxTokens?: number;
+  /** Sampling temperature */
+  temperature?: number;
+}
+
+/**
+ * Result returned by generate().
+ */
+export interface GenerateResult {
+  /** The generated text content */
+  content: string;
+  /** Tool calls invoked by the model (if any) */
+  toolCalls?: unknown[];
+  /** Token usage statistics */
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
+/**
  * IModelDriver — The kernel's "Communication" plugin.
  *
  * Translates unified framework messages into provider-specific API payloads.
@@ -89,6 +122,17 @@ export interface IModelDriver {
    * @returns Vendor-specific payload ready for API submission
    */
   translate(messages: Message[]): Promise<VendorPayload>;
+
+  /**
+   * Generate a response from the model.
+   *
+   * Wraps @ai-sdk/core to send messages through the configured provider
+   * and return the generated text with optional tool calls and usage stats.
+   *
+   * @param options — generation parameters including model, messages, tools, etc.
+   * @returns Generated content with optional tool calls and usage
+   */
+  generate?(options: GenerateOptions): Promise<GenerateResult>;
 
   /**
    * Estimate token usage for a set of messages.
