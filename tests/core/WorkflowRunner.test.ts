@@ -14,7 +14,7 @@ function createTestDriver(
   generateFn: (options: GenerateOptions) => Promise<GenerateResult>,
 ): IModelDriver {
   return {
-    name: 'Driver',
+    name: 'test_driver',
     version: '1.0.0-test',
     initialize: vi.fn(),
     ping: async () => true,
@@ -282,7 +282,7 @@ describe('WorkflowRunner', () => {
     const kernel = createMicroKernel();
 
     const driverNoGen: IModelDriver = {
-      name: 'Driver',
+      name: 'test_driver',
       version: '1.0.0',
       initialize: vi.fn(),
       ping: async () => true,

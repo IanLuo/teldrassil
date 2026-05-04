@@ -50,7 +50,7 @@ export class WorkflowRunner {
     for (let i = 0; i < sequence.length; i++) {
       const step = sequence[i];
       const agent = this.resolveAgent(step.agent);
-      const driver = this.getDriver();
+      const driver = this.getDriver(agent.use_driver);
 
       if (!driver.generate) {
         throw new Error(
@@ -234,10 +234,10 @@ export class WorkflowRunner {
     ];
   }
 
-  private getDriver(): IModelDriver {
-    const plugin = this.kernel.getRegistry().getPlugin('Driver');
+  private getDriver(driverId: string): IModelDriver {
+    const plugin = this.kernel.getRegistry().getPlugin(driverId);
     if (!plugin) {
-      throw new Error('Driver plugin not found in kernel registry');
+      throw new Error(`Driver plugin '${driverId}' not found in kernel registry`);
     }
     return plugin as unknown as IModelDriver;
   }
