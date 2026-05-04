@@ -77,9 +77,7 @@ export interface IMemoryEngine {
    * Retrieve a payload by its signed URI.
    *
    * Validates the HMAC signature before retrieval.
-   * Returns null if the artifact does not exist.
-   *
-   * @throws Unauthorized — if the URI signature is missing or invalid
+   * Returns null if the artifact does not exist or if the URI signature is missing or invalid.
    */
   get(uri: MemoryURI): unknown;
 

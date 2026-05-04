@@ -1,4 +1,4 @@
-import type { IVault, DEK, AuthType } from './IVault';
+import type { IVault, DEK } from './IVault';
 
 /**
  * In-memory mock of the Identity Vault for kernel bootstrap tests.
@@ -21,9 +21,5 @@ export class InMemoryVault implements IVault {
 
   async getSecret(toolId: string): Promise<string | null> {
     return this.secrets.get(toolId) ?? null;
-  }
-
-  async injectCredential(_authType: AuthType, _credential: string): Promise<void> {
-    // no-op for in-memory mock
   }
 }

@@ -60,14 +60,7 @@ describe('EnvVaultPlugin', () => {
     });
   });
 
-  describe('injectCredential', () => {
-    it('should complete without throwing', async () => {
-      const plugin = createPlugin();
-      await expect(plugin.injectCredential('Bearer', 'token123')).resolves.toBeUndefined();
-    });
-  });
-
-  describe('initialize and shutdown', () => {
+    describe('initialize and shutdown', () => {
     it('should initialize without error', () => {
       const plugin = createPlugin();
       expect(() => plugin.initialize()).not.toThrow();

@@ -19,7 +19,6 @@ function createMockVault(secrets: Record<string, string> = {}): IVault {
     shutdown: () => {},
     generateDEK: async () => 'mock-dek' as any,
     getSecret: async (toolId: string) => map.get(toolId) ?? null,
-    injectCredential: async () => {},
   };
 }
 

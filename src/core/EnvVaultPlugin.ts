@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import type { IVault, DEK, AuthType } from './IVault';
+import type { IVault, DEK } from './IVault';
 
 /**
  * EnvVaultPlugin — Environment-based Identity Vault.
@@ -54,10 +54,5 @@ export class EnvVaultPlugin implements IVault {
 
   async getSecret(toolId: string): Promise<string | null> {
     return this.secrets.get(toolId) ?? null;
-  }
-
-  async injectCredential(_authType: AuthType, _credential: string): Promise<void> {
-    // In production, this attaches the credential to transport headers.
-    // For the mock, it's a no-op.
   }
 }

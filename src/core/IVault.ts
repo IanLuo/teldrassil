@@ -18,11 +18,6 @@
 export type DEK = string & { readonly __brand?: 'DEK' };
 
 /**
- * Supported authentication types for credential injection.
- */
-export type AuthType = 'Bearer' | 'APIKey' | 'OAuth2' | 'Basic';
-
-/**
  * IVault — The kernel's "Security" plugin.
  *
  * Initialized from a Master Key (`.env` or Cloud KMS).
@@ -67,15 +62,4 @@ export interface IVault {
    * @param toolId — unique identifier for the tool or domain
    */
   getSecret(toolId: string): Promise<string | null>;
-
-  /**
-   * Inject a credential into a transport-layer request.
-   *
-   * This is the JIT injection pipeline: the credential is attached
-   * to the outgoing request header but NEVER returned to the calling agent.
-   *
-   * @param authType — the authentication scheme (Bearer, APIKey, OAuth2, Basic)
-   * @param credential — the secret to inject
-   */
-  injectCredential(authType: AuthType, credential: string): Promise<void>;
 }

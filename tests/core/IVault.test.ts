@@ -8,8 +8,7 @@ describe('IVault', () => {
         name: 'MockVault',
         initialize: () => {},
         generateDEK: async () => 'dek_session_abc123' as DEK,
-        getSecret: async () => 'token_xyz',
-        injectCredential: async () => {},
+        getSecret: async () => 'token_xyz'
       };
 
       const dek = await vault.generateDEK();
@@ -27,8 +26,7 @@ describe('IVault', () => {
           generated.push(dek);
           return dek;
         },
-        getSecret: async () => 'token',
-        injectCredential: async () => {},
+        getSecret: async () => 'token'
       };
 
       const dek1 = await vault.generateDEK();
@@ -45,8 +43,7 @@ describe('IVault', () => {
         name: 'MockVault',
         initialize: () => {},
         generateDEK: async () => 'dek' as DEK,
-        getSecret: async (toolId: string) => secrets[toolId] || null,
-        injectCredential: async () => {},
+        getSecret: async (toolId: string) => secrets[toolId] || null
       };
 
       const secret = await vault.getSecret('slack');
@@ -58,30 +55,11 @@ describe('IVault', () => {
         name: 'MockVault',
         initialize: () => {},
         generateDEK: async () => 'dek' as DEK,
-        getSecret: async () => null,
-        injectCredential: async () => {},
+        getSecret: async () => null
       };
 
       const secret = await vault.getSecret('unknown_tool');
       expect(secret).toBeNull();
-    });
-  });
-
-  describe('JIT injection', () => {
-    it('should inject a credential without exposing it to the agent', async () => {
-      let injected: string | null = null;
-      const vault: IVault = {
-        name: 'MockVault',
-        initialize: () => {},
-        generateDEK: async () => 'dek' as DEK,
-        getSecret: async () => 'secret_token',
-        injectCredential: async (authType: string, credential: string) => {
-          injected = `${authType}:${credential}`;
-        },
-      };
-
-      await vault.injectCredential('Bearer', 'secret_token');
-      expect(injected).toBe('Bearer:secret_token');
     });
   });
 
@@ -94,14 +72,12 @@ describe('IVault', () => {
         ping: async () => true,
         shutdown: () => {},
         generateDEK: async () => 'dek' as DEK,
-        getSecret: async () => 'secret',
-        injectCredential: async () => {},
+        getSecret: async () => 'secret'
       };
 
       expect(vault.name).toBe('MockVault');
       expect(typeof vault.generateDEK).toBe('function');
       expect(typeof vault.getSecret).toBe('function');
-      expect(typeof vault.injectCredential).toBe('function');
     });
   });
 });
