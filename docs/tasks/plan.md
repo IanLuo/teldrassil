@@ -56,5 +56,5 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 7.4 **Unified LLM Driver:** Implement `UnifiedModelDriver` implementing `generate()` via `@ai-sdk/core`, integrating Vault credentials.
 * [x] 7.5 **Deterministic Driver:** Implement `HostFunctionDriver` for zero-cost, deterministic local code execution.
 * [x] 7.6 **Structured Routing:** Extend `SupervisorDecision` to 5-enum and create `RouteDecision` metadata struct written to Trace Log.
-* [ ] 7.7 **Workflow Runner:** Implement the workflow execution loop (`WorkflowRunner`) that executes the manifest sequence.
+* [x] 7.7 **Workflow Runner:** Implement the workflow execution loop (`WorkflowRunner`) that executes the manifest sequence.
 * [ ] 7.8 **Human Interaction:** Wire the `HUMAN_REQUIRED` event and protocol (HumanInputRequest/Result) to the runner.
