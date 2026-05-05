@@ -12,21 +12,24 @@ description: Enforces a strict 6-step development loop for Teldrassil. Orchestra
 ### Orchestrator Mode (you see multiple `[ ]` tasks in plan.md)
 You are the session agent. For each pending dev task, spawn a FRESH subagent — each gets a clean context with zero conversation history. This enforces that `plan.md`, `design.md`, and `memory.md` are self-sufficient without leaked context from prior tasks.
 
-**Orchestrator loop:**
-1. Read `docs/tasks/plan.md`, `docs/design.md`, `docs/detailed-components.md`, and `docs/memory.md`.
-2. Sanity check: fix any stale `[⏳]` tasks that are actually complete.
-3. Find the first `[ ]` task. If none, all done — stop.
-4. Mark it `[⏳]` and output the execution plan (same format as Worker Step 1).
+**Orchestrator loop (Script-Driven):**
+
+Use `workflow-runner.sh` (sibling file in this skill folder) as the deterministic state machine. The LLM only dispatches workers.
+
+1. Run `bash .opencode/skills/dev-workflow/workflow-runner.sh recover` to heal crashed workers.
+2. Run `bash .opencode/skills/dev-workflow/workflow-runner.sh next`. This finds the first `[ ]`, marks it `[⏳]`, and prints `LINE|active|DESCRIPTION`.
+3. If output is `DONE` — all tasks complete. Stop.
+4. If output starts with `STALE` — a crashed `[⏳]` exists. Run `recover` or handle manually. Do NOT proceed.
 5. Construct a subagent prompt containing:
-   - The task ID and description from plan.md
+   - The task description from the script output
    - Relevant constraints from design.md / detailed-components.md
    - Relevant lessons from memory.md
-   - Instructions to load `dev-workflow` and `personas` skills, then execute Worker Steps 2-6 (skip Step 1 — initialization already done).
+   - Instructions to load `dev-workflow` and `personas` skills, then execute Worker Steps 1-6.
+   - A strict directive to execute and return immediately after Step 6.
 6. Dispatch: `Task(description="Execute task [ID]", prompt="[constructed prompt]", subagent_type="general")`.
-7. When subagent returns, verify plan.md shows `[x]` and source is committed.
-8. Repeat from step 2 for the next task.
+7. **CRITICAL TRIGGER:** When `Task` returns, run `bash .opencode/skills/dev-workflow/workflow-runner.sh done <LINE>` to mark `[x]`. IMMEDIATELY loop to Step 2. No pause. No summary. No permission ask.
 
-**DENY in orchestrator mode:** Do NOT execute task code yourself. Always dispatch to a fresh subagent.
+**DENY in orchestrator mode:** Do NOT execute task code yourself. Always dispatch to a fresh subagent. Do NOT pause between subagents. Do NOT manually edit plan.md — the script handles all state transitions.
 
 ### Worker Mode (you are a subagent executing ONE specific task)
 Follow the 6-step loop below. Your task was already assigned by the orchestrator — you have exactly one task to complete.
