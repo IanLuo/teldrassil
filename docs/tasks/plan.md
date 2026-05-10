@@ -68,3 +68,19 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 8.6 **Feature:** Wire Evaluator Agents. Update `WorkflowRunner.ts` to invoke the agent defined in the `evaluator` field (if present) for binary PROCEED/REWORK decisions, logging findings to the `TraceLog`.
 * [x] 8.7 **Refactor:** Zod Manifest Validation. Replace the hand-rolled YAML parser in `ManifestParser.ts` with strict schema validation using `zod` and `js-yaml`.
 * [x] 8.8 **Docs:** Fix `IMemoryEngine` JSDoc (remove `@throws Unauthorized` since it returns `null`) and clean up `IVault` (remove or document the dead `injectCredential` method).
+
+## Phase 9: Customer Feedback — Robustness & Integration Readiness
+* [⏳] 9.1 **Fix:** `LocalJsonStatePlugin.shutdown()` — snapshot without clearing state, then clear only in-memory fields. Add test for append→shutdown→new instance→history preserved.
+* [ ] 9.2 **Fix:** Retry limit semantics. Enforce `retryCount >= maxRetries` in Supervisor/WorkflowRunner **before** worker execution. `maxRetries` = extra attempts after first try. Add tests for `maxRetries: 0`, `1`, and `3`.
+* [ ] 9.3 **Fix:** Replace evaluator substring parsing (`evalOutput.includes('REWORK')`) with structured output contract. Require `decision: PROCEED | REWORK | BLOCK` in evaluator response. Default to `REWORK` on malformed output. Log full evaluator output to Trace.
+* [ ] 9.4 **Feature:** Extend `StepResult` with `outputRef` (MemoryURI), `traceRef`, `decision`, `retries`. Allow `SequenceStep` to declare input refs or dependency refs.
+* [ ] 9.5 **Feature:** Add host-overridable hooks to WorkflowRunner: `buildMessages(step, agent, context)`, `afterStep(step, result)`, `evaluateOutput(step, output)`, `onDecision(decision, step)`. Runner provides sensible defaults for all four.
+* [ ] 9.6 **Feature:** Add `TraceEnvelope` standard metadata wrapper (`traceId`, `sessionId`, `nodeId`, `type`, `timestamp`, `payload`) to all trace entries. Keep `payload` generic.
+* [ ] 9.7 **Fix:** Trace corruption recovery. On corrupted trace file, rename to `trace.corrupt.<timestamp>.json`, start fresh trace, append recovery event.
+* [ ] 9.8 **Feature:** Add structured output support to `UnifiedModelDriver.generate()`. When `schema` is present in `GenerateOptions`, use AI SDK structured generation. Return `GenerateResult` with both `content` and `object?`.
+* [ ] 9.9 **Feature:** Strengthen driver identification. Add `kind`/`capabilities` to plugin base interface. Validate manifest `plugins.model_drivers[].id` against registered driver plugins. Fall back to existing heuristics for backward compatibility.
+* [ ] 9.10 **Fix:** Normalize Memory URI keys to opaque safe IDs. Return `mem://v1/${safeKey}?sig=...` instead of exposing raw key in URI. Document URI path as opaque.
+* [ ] 9.11 **Clarify:** BLOCK vs ESCALATE semantics in WorkflowRunner. ESCALATE (retry budget exhausted) routes through policy, not always throwing. BLOCK (missing input/context) requires intervention.
+* [ ] 9.12 **Feature:** Make Human Attach resumable. Persist `HumanInputRequest` to State Manager (<4KB pointer-only, referable by `traceRef` to full Trace Log context). On startup, runner detects pending request and resumes waiting.
+* [ ] 9.13 **Docs:** Update README to reflect Phase 7/8 reality — `UnifiedModelDriver` over `AnthropicDriver`, 5 vital plugins including Trace, `HostFunctionDriver` integration example, driver-by-ID registration.
+* [ ] 9.14 **Docs:** Add Binary Supervisor example to docs — Evaluator writes `GateFinding[]` to Trace, returns binary decision, Supervisor consumes only decision, WorkflowRunner records `RouteDecision` to Trace.
