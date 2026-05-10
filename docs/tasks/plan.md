@@ -78,7 +78,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 9.6 **Feature:** Add `TraceEnvelope` standard metadata wrapper (`traceId`, `sessionId`, `nodeId`, `type`, `timestamp`, `payload`) to all trace entries. Keep `payload` generic.
 * [x] 9.7 **Fix:** Trace corruption recovery. On corrupted trace file, rename to `trace.corrupt.<timestamp>.json`, start fresh trace, append recovery event.
 * [x] 9.8 **Feature:** Add structured output support to `UnifiedModelDriver.generate()`. When `schema` is present in `GenerateOptions`, use AI SDK structured generation. Return `GenerateResult` with both `content` and `object?`.
-* [👁] 9.9 **Feature:** Strengthen driver identification. Add `kind`/`capabilities` to plugin base interface. Validate manifest `plugins.model_drivers[].id` against registered driver plugins. Fall back to existing heuristics for backward compatibility.
+* [x] 9.9 **Feature:** Strengthen driver identification. Add `kind`/`capabilities` to plugin base interface. Validate manifest `plugins.model_drivers[].id` against registered driver plugins. Fall back to existing heuristics for backward compatibility.
 * [ ] 9.10 **Fix:** Normalize Memory URI keys to opaque safe IDs. Return `mem://v1/${safeKey}?sig=...` instead of exposing raw key in URI. Document URI path as opaque.
 * [ ] 9.11 **Clarify:** BLOCK vs ESCALATE semantics in WorkflowRunner. ESCALATE (retry budget exhausted) routes through policy, not always throwing. BLOCK (missing input/context) requires intervention.
 * [ ] 9.12 **Feature:** Make Human Attach resumable. Persist `HumanInputRequest` to State Manager (<4KB pointer-only, referable by `traceRef` to full Trace Log context). On startup, runner detects pending request and resumes waiting.
