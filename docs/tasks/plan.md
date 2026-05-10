@@ -75,7 +75,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 9.3 **Fix:** Replace evaluator substring parsing (`evalOutput.includes('REWORK')`) with structured output contract. Require `decision: PROCEED | REWORK | BLOCK` in evaluator response. Default to `REWORK` on malformed output. Log full evaluator output to Trace.
 * [x] 9.4 **Feature:** Extend `StepResult` with `outputRef` (MemoryURI), `traceRef`, `decision`, `retries`. Allow `SequenceStep` to declare input refs or dependency refs.
 * [x] 9.5 **Feature:** Add host-overridable hooks to WorkflowRunner: `buildMessages(step, agent, context)`, `afterStep(step, result)`, `evaluateOutput(step, output)`, `onDecision(decision, step)`. Runner provides sensible defaults for all four.
-* [⏳] 9.6 **Feature:** Add `TraceEnvelope` standard metadata wrapper (`traceId`, `sessionId`, `nodeId`, `type`, `timestamp`, `payload`) to all trace entries. Keep `payload` generic.
+* [👁] 9.6 **Feature:** Add `TraceEnvelope` standard metadata wrapper (`traceId`, `sessionId`, `nodeId`, `type`, `timestamp`, `payload`) to all trace entries. Keep `payload` generic.
 * [ ] 9.7 **Fix:** Trace corruption recovery. On corrupted trace file, rename to `trace.corrupt.<timestamp>.json`, start fresh trace, append recovery event.
 * [ ] 9.8 **Feature:** Add structured output support to `UnifiedModelDriver.generate()`. When `schema` is present in `GenerateOptions`, use AI SDK structured generation. Return `GenerateResult` with both `content` and `object?`.
 * [ ] 9.9 **Feature:** Strengthen driver identification. Add `kind`/`capabilities` to plugin base interface. Validate manifest `plugins.model_drivers[].id` against registered driver plugins. Fall back to existing heuristics for backward compatibility.
