@@ -3,6 +3,7 @@ import type { MicroKernel } from './MicroKernel';
 import type { IModelDriver, Message } from './IModelDriver';
 import type { IStateManager } from './IStateManager';
 import type { ITraceLog } from './ITraceLog';
+import { createTraceEnvelope } from './ITraceLog';
 import { Supervisor, SupervisorDecision, type SupervisorInput } from './Supervisor';
 import { recordRouteDecision } from './RouteDecision';
 import { SystemExit } from './SystemExit';
@@ -137,14 +138,16 @@ export class WorkflowRunner {
           const evalOutput = evalResult.content;
           evaluatorDecision = parseEvaluatorDecision(evalOutput);
 
-          this.getTraceLog().appendTrace({
-            type: 'EvaluatorDecision',
-            step: step.step,
-            evaluator: step.evaluator,
-            decision: evaluatorDecision,
-            reason: evalOutput,
-            timestamp: new Date().toISOString()
-          });
+          this.getTraceLog().appendTrace(createTraceEnvelope(
+            'gate_finding',
+            step.step,
+            this.manifest.project_id,
+            {
+              evaluator: step.evaluator,
+              decision: evaluatorDecision,
+              reason: evalOutput,
+            }
+          ));
         }
 
         const supervisorInput: SupervisorInput = {
@@ -174,7 +177,7 @@ export class WorkflowRunner {
           decision,
           reason: getDecisionReason(decision, stepRetries),
           timestamp: new Date().toISOString(),
-        });
+        }, this.manifest.project_id, step.step);
 
         if (decision === SupervisorDecision.PROCEED || decision === SupervisorDecision.COMPLETE) {
           this.getStateManager().append({

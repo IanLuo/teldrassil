@@ -14,6 +14,33 @@
  */
 export type TraceURI = string & { readonly __brand?: 'TraceURI' };
 
+export type TraceEntryType = 'route_decision' | 'gate_finding' | 'llm_io' | 'recovery' | 'custom';
+
+export interface TraceEnvelope {
+    traceId: string;
+    sessionId: string;
+    nodeId: string;
+    type: TraceEntryType;
+    timestamp: string;
+    payload: unknown;
+}
+
+export function createTraceEnvelope(
+    type: TraceEntryType,
+    nodeId: string,
+    sessionId: string,
+    payload: unknown
+): TraceEnvelope {
+    return {
+        traceId: `trace-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        sessionId,
+        nodeId,
+        type,
+        timestamp: new Date().toISOString(),
+        payload,
+    };
+}
+
 /**
  * ITraceLog — The kernel's "Observability" plugin.
  *
@@ -39,16 +66,24 @@ export interface ITraceLog {
   /**
    * Append a trace entry and return a unique TraceURI.
    *
-   * @param payload — raw trace data (RouteDecision, GateFinding[], LLM I/O, etc.)
+   * @param envelope — TraceEnvelope with standard metadata and typed payload
    * @returns A TraceURI (e.g., trace://v1/00001)
    */
-  appendTrace(payload: unknown): TraceURI;
+  appendTrace(envelope: TraceEnvelope): TraceURI;
 
   /**
    * Retrieve a trace entry by its URI.
    *
    * @param uri — the TraceURI returned by appendTrace()
-   * @returns The trace payload, or null if the URI does not exist
+   * @returns The TraceEnvelope, or null if the URI does not exist
    */
   getTrace(uri: TraceURI): unknown | null;
+
+  /**
+   * List all trace entries for a given session.
+   *
+   * @param sessionId — the session identifier
+   * @returns Array of TraceEnvelope entries
+   */
+  listBySession?(sessionId: string): TraceEnvelope[];
 }

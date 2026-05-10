@@ -3,7 +3,7 @@ import { SupervisorDecision } from '../../src/core/Supervisor';
 import type { Manifest } from '../../src/core/ManifestParser';
 import type { IModelDriver, Message, GenerateOptions, GenerateResult, VendorPayload, DriverCapabilities } from '../../src/core/IModelDriver';
 import type { IStateManager, StateEntry } from '../../src/core/IStateManager';
-import type { ITraceLog, TraceURI } from '../../src/core/ITraceLog';
+import type { ITraceLog, TraceURI, TraceEnvelope } from '../../src/core/ITraceLog';
 import type { HumanInputRequest, HumanInputResult } from '../../src/core/HumanProtocol';
 import { MicroKernel } from '../../src/core/MicroKernel';
 import { SystemExit } from '../../src/core/SystemExit';
@@ -80,7 +80,7 @@ function createInMemoryTraceLog(): ITraceLog {
     initialize: vi.fn(),
     ping: async () => true,
     shutdown: vi.fn(),
-    appendTrace(_payload: unknown): TraceURI {
+    appendTrace(_envelope: TraceEnvelope): TraceURI {
       return `trace://v1/0` as TraceURI;
     },
     getTrace(_uri: TraceURI): unknown | null {
@@ -391,8 +391,9 @@ describe('WorkflowRunner', () => {
     await runner.run();
 
     expect(appendTraceSpy).toHaveBeenCalledTimes(1);
-    const payload = appendTraceSpy.mock.calls[0][0] as Record<string, unknown>;
-    expect(payload.type).toBe('RouteDecision');
+    const envelope = appendTraceSpy.mock.calls[0][0] as TraceEnvelope;
+    expect(envelope.type).toBe('route_decision');
+    const payload = envelope.payload as Record<string, unknown>;
     expect(payload.from).toBe('traced_step');
     expect(payload.decision).toBe(SupervisorDecision.COMPLETE);
   });
@@ -425,10 +426,10 @@ describe('WorkflowRunner', () => {
     await runner.run();
 
     expect(appendTraceSpy).toHaveBeenCalledTimes(2); // one REWORK, one COMPLETE
-    const firstPayload = appendTraceSpy.mock.calls[0][0] as Record<string, unknown>;
-    expect(firstPayload.decision).toBe(SupervisorDecision.REWORK);
-    const secondPayload = appendTraceSpy.mock.calls[1][0] as Record<string, unknown>;
-    expect(secondPayload.decision).toBe(SupervisorDecision.COMPLETE);
+    const firstEnvelope = appendTraceSpy.mock.calls[0][0] as TraceEnvelope;
+    expect((firstEnvelope.payload as Record<string, unknown>).decision).toBe(SupervisorDecision.REWORK);
+    const secondEnvelope = appendTraceSpy.mock.calls[1][0] as TraceEnvelope;
+    expect((secondEnvelope.payload as Record<string, unknown>).decision).toBe(SupervisorDecision.COMPLETE);
   });
 
   // 11. Event publishing
@@ -934,14 +935,16 @@ describe('WorkflowRunner', () => {
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
 
-    // Verify TraceLog logged EvaluatorDecision
-    const evalTraces = appendTraceSpy.mock.calls.filter(call => 
-      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
-    );
+    // Verify TraceLog logged EvaluatorDecision as gate_finding envelope
+    const evalTraces = appendTraceSpy.mock.calls.filter(call => {
+      const env = call[0] as TraceEnvelope;
+      return env.type === 'gate_finding';
+    });
     expect(evalTraces).toHaveLength(1);
-    expect(evalTraces[0][0]).toMatchObject({
-      type: 'EvaluatorDecision',
-      step: 'step_with_eval',
+    const evalEnvelope = evalTraces[0][0] as TraceEnvelope;
+    expect(evalEnvelope.type).toBe('gate_finding');
+    expect(evalEnvelope.nodeId).toBe('step_with_eval');
+    expect(evalEnvelope.payload).toMatchObject({
       evaluator: 'evaluator_agent',
       decision: 'PROCEED'
     });
@@ -1108,12 +1111,14 @@ describe('WorkflowRunner', () => {
 
     expect(evalCallCount).toBeGreaterThanOrEqual(2);
 
-    // Check that malformed outputs were logged as REWORK decisions
-    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
-      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
-    );
+    // Check that malformed outputs were logged as REWORK decisions in gate_finding envelopes
+    const evalTraces = appendTraceSpy.mock.calls.filter(call => {
+      const env = call[0] as TraceEnvelope;
+      return env.type === 'gate_finding';
+    });
     expect(evalTraces.length).toBeGreaterThanOrEqual(2);
-    expect(evalTraces[0][0]).toMatchObject({ decision: 'REWORK' });
+    const firstEvalEnv = evalTraces[0][0] as TraceEnvelope;
+    expect(firstEvalEnv.payload).toMatchObject({ decision: 'REWORK' });
   });
 
   // 16. Evaluator: BLOCK triggers human intervention path
@@ -1162,14 +1167,16 @@ describe('WorkflowRunner', () => {
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
 
-    // Verify EvaluatorDecision was logged with BLOCK
-    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
-      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
-    );
+    // Verify EvaluatorDecision was logged with BLOCK in gate_finding envelope
+    const evalTraces = appendTraceSpy.mock.calls.filter(call => {
+      const env = call[0] as TraceEnvelope;
+      return env.type === 'gate_finding';
+    });
     expect(evalTraces).toHaveLength(1);
-    expect(evalTraces[0][0]).toMatchObject({
-      type: 'EvaluatorDecision',
-      step: 'block_step',
+    const evalEnvelope = evalTraces[0][0] as TraceEnvelope;
+    expect(evalEnvelope.type).toBe('gate_finding');
+    expect(evalEnvelope.nodeId).toBe('block_step');
+    expect(evalEnvelope.payload).toMatchObject({
       evaluator: 'evaluator_agent',
       decision: 'BLOCK'
     });
@@ -1219,16 +1226,17 @@ describe('WorkflowRunner', () => {
     expect(result.steps).toHaveLength(4);
     expect(result.steps[1].retries).toBe(1); // step_2 had rework
 
-    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
-      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
-    );
+    const evalTraces = appendTraceSpy.mock.calls.filter(call => {
+      const env = call[0] as TraceEnvelope;
+      return env.type === 'gate_finding';
+    });
     // 5 eval calls: step_1, step_2 (first), step_2 (retry), step_3, step_4
     expect(evalTraces).toHaveLength(5);
-    expect(evalTraces[0][0]).toMatchObject({ decision: 'PROCEED' }); // DECISION: PROCEED
-    expect(evalTraces[1][0]).toMatchObject({ decision: 'REWORK' });  // decision:rework
-    expect(evalTraces[2][0]).toMatchObject({ decision: 'PROCEED' }); // retry: decision: PROCEED
-    expect(evalTraces[3][0]).toMatchObject({ decision: 'PROCEED' }); // Decision  :  PROCEED
-    expect(evalTraces[4][0]).toMatchObject({ decision: 'PROCEED' }); // decision = proceed
+    expect((evalTraces[0][0] as TraceEnvelope).payload).toMatchObject({ decision: 'PROCEED' }); // DECISION: PROCEED
+    expect((evalTraces[1][0] as TraceEnvelope).payload).toMatchObject({ decision: 'REWORK' });  // decision:rework
+    expect((evalTraces[2][0] as TraceEnvelope).payload).toMatchObject({ decision: 'PROCEED' }); // retry: decision: PROCEED
+    expect((evalTraces[3][0] as TraceEnvelope).payload).toMatchObject({ decision: 'PROCEED' }); // Decision  :  PROCEED
+    expect((evalTraces[4][0] as TraceEnvelope).payload).toMatchObject({ decision: 'PROCEED' }); // decision = proceed
   });
 
   // 18. Evaluator: structured format takes precedence over sentence content
@@ -1266,12 +1274,13 @@ describe('WorkflowRunner', () => {
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
 
-    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
-      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
-    );
+    const evalTraces = appendTraceSpy.mock.calls.filter(call => {
+      const env = call[0] as TraceEnvelope;
+      return env.type === 'gate_finding';
+    });
     expect(evalTraces).toHaveLength(1);
     // The prose contains "REWORK" but the structured decision says PROCEED
-    expect(evalTraces[0][0]).toMatchObject({ decision: 'PROCEED' });
+    expect((evalTraces[0][0] as TraceEnvelope).payload).toMatchObject({ decision: 'PROCEED' });
   });
 
   // 19. Evaluator: BLOCK override applies similar to REWORK override

@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { LocalJsonTracePlugin } from '../../src/core/LocalJsonTracePlugin';
+import { createTraceEnvelope } from '../../src/core/ITraceLog';
 
 describe('LocalJsonTracePlugin', () => {
   let traceDir: string;
@@ -34,11 +35,11 @@ describe('LocalJsonTracePlugin', () => {
     beforeEach(() => { plugin = new LocalJsonTracePlugin(traceDir); });
 
     it('should append a trace and retrieve it by URI', () => {
-      const payload = { type: 'RouteDecision', from: 'n1', to: 'n2' };
-      const uri = plugin.appendTrace(payload);
+      const envelope = createTraceEnvelope('custom', 'n1', 'session-1', { from: 'n1', to: 'n2' });
+      const uri = plugin.appendTrace(envelope);
 
       expect(uri).toBeTypeOf('string');
-      expect(plugin.getTrace(uri)).toEqual(payload);
+      expect(plugin.getTrace(uri)).toEqual(envelope);
     });
 
     it('should return null for unknown URI', () => {
@@ -46,64 +47,74 @@ describe('LocalJsonTracePlugin', () => {
     });
 
     it('should preserve append order via URI sequence', () => {
-      const uri1 = plugin.appendTrace({ step: 1 });
-      const uri2 = plugin.appendTrace({ step: 2 });
-      const uri3 = plugin.appendTrace({ step: 3 });
+      const e1 = createTraceEnvelope('custom', 's1', 'session-1', { step: 1 });
+      const e2 = createTraceEnvelope('custom', 's2', 'session-1', { step: 2 });
+      const e3 = createTraceEnvelope('custom', 's3', 'session-1', { step: 3 });
 
-      expect(plugin.getTrace(uri1)).toEqual({ step: 1 });
-      expect(plugin.getTrace(uri2)).toEqual({ step: 2 });
-      expect(plugin.getTrace(uri3)).toEqual({ step: 3 });
+      const uri1 = plugin.appendTrace(e1);
+      const uri2 = plugin.appendTrace(e2);
+      const uri3 = plugin.appendTrace(e3);
+
+      expect(plugin.getTrace(uri1)).toEqual(e1);
+      expect(plugin.getTrace(uri2)).toEqual(e2);
+      expect(plugin.getTrace(uri3)).toEqual(e3);
     });
 
     it('should handle diverse payload types', () => {
-      const stringPayload = 'raw log line';
-      const numberPayload = 42;
-      const arrayPayload = [{ finding: 'issue1' }, { finding: 'issue2' }];
-      const nestedPayload = { llm_io: { input: 'prompt', output: 'response', tokens: 150 } };
+      const e1 = createTraceEnvelope('custom', 'n1', 'session-1', 'raw log line');
+      const e2 = createTraceEnvelope('custom', 'n2', 'session-1', 42);
+      const e3 = createTraceEnvelope('gate_finding', 'n3', 'session-1', [{ finding: 'issue1' }, { finding: 'issue2' }]);
+      const e4 = createTraceEnvelope('llm_io', 'n4', 'session-1', { input: 'prompt', output: 'response', tokens: 150 });
 
-      const uri1 = plugin.appendTrace(stringPayload);
-      const uri2 = plugin.appendTrace(numberPayload);
-      const uri3 = plugin.appendTrace(arrayPayload);
-      const uri4 = plugin.appendTrace(nestedPayload);
+      const uri1 = plugin.appendTrace(e1);
+      const uri2 = plugin.appendTrace(e2);
+      const uri3 = plugin.appendTrace(e3);
+      const uri4 = plugin.appendTrace(e4);
 
-      expect(plugin.getTrace(uri1)).toBe('raw log line');
-      expect(plugin.getTrace(uri2)).toBe(42);
-      expect(plugin.getTrace(uri3)).toEqual([{ finding: 'issue1' }, { finding: 'issue2' }]);
-      expect(plugin.getTrace(uri4)).toEqual({ llm_io: { input: 'prompt', output: 'response', tokens: 150 } });
+      expect(plugin.getTrace(uri1)).toEqual(e1);
+      expect(plugin.getTrace(uri2)).toEqual(e2);
+      expect(plugin.getTrace(uri3)).toEqual(e3);
+      expect(plugin.getTrace(uri4)).toEqual(e4);
     });
   });
 
   describe('disk persistence', () => {
     it('should persist traces to disk on append', () => {
       plugin = new LocalJsonTracePlugin(traceDir);
-      plugin.appendTrace({ step: 1 });
+      const envelope = createTraceEnvelope('custom', 'n1', 'session-1', { step: 1 });
+      plugin.appendTrace(envelope);
 
       const traceFile = path.join(traceDir, 'trace.json');
       expect(fs.existsSync(traceFile)).toBe(true);
 
       const raw = JSON.parse(fs.readFileSync(traceFile, 'utf8'));
       expect(raw.entries).toHaveLength(1);
-      expect(raw.entries[0].payload).toEqual({ step: 1 });
+      expect(raw.entries[0].envelope.payload).toEqual({ step: 1 });
     });
 
     it('should load existing traces from disk on construction', () => {
       const p1 = new LocalJsonTracePlugin(traceDir);
-      const uri = p1.appendTrace({ step: 1 });
+      const envelope = createTraceEnvelope('custom', 'n1', 'session-1', { step: 1 });
+      const uri = p1.appendTrace(envelope);
 
       const p2 = new LocalJsonTracePlugin(traceDir);
-      expect(p2.getTrace(uri)).toEqual({ step: 1 });
+      expect(p2.getTrace(uri)).toEqual(envelope);
     });
 
     it('should preserve all traces after reload from disk', () => {
       const p1 = new LocalJsonTracePlugin(traceDir);
-      const uri1 = p1.appendTrace({ step: 'a' });
-      const uri2 = p1.appendTrace({ step: 'b' });
-      const uri3 = p1.appendTrace({ step: 'c' });
+      const e1 = createTraceEnvelope('custom', 's1', 'session-1', { step: 'a' });
+      const e2 = createTraceEnvelope('custom', 's2', 'session-1', { step: 'b' });
+      const e3 = createTraceEnvelope('custom', 's3', 'session-1', { step: 'c' });
+
+      const uri1 = p1.appendTrace(e1);
+      const uri2 = p1.appendTrace(e2);
+      const uri3 = p1.appendTrace(e3);
 
       const p2 = new LocalJsonTracePlugin(traceDir);
-      expect(p2.getTrace(uri1)).toEqual({ step: 'a' });
-      expect(p2.getTrace(uri2)).toEqual({ step: 'b' });
-      expect(p2.getTrace(uri3)).toEqual({ step: 'c' });
+      expect(p2.getTrace(uri1)).toEqual(e1);
+      expect(p2.getTrace(uri2)).toEqual(e2);
+      expect(p2.getTrace(uri3)).toEqual(e3);
     });
 
     it('should handle empty trace on first run', () => {
@@ -119,8 +130,9 @@ describe('LocalJsonTracePlugin', () => {
       fs.writeFileSync(traceFile, 'not valid json{{{', 'utf8');
 
       plugin = new LocalJsonTracePlugin(traceDir);
-      const uri = plugin.appendTrace({ step: 'fresh' });
-      expect(plugin.getTrace(uri)).toEqual({ step: 'fresh' });
+      const envelope = createTraceEnvelope('custom', 'n1', 'session-1', { step: 'fresh' });
+      const uri = plugin.appendTrace(envelope);
+      expect(plugin.getTrace(uri)).toEqual(envelope);
     });
 
     it('should recover from empty trace file', () => {
@@ -129,22 +141,24 @@ describe('LocalJsonTracePlugin', () => {
       fs.writeFileSync(traceFile, '', 'utf8');
 
       plugin = new LocalJsonTracePlugin(traceDir);
-      const uri = plugin.appendTrace({ step: 'fresh' });
-      expect(plugin.getTrace(uri)).toEqual({ step: 'fresh' });
+      const envelope = createTraceEnvelope('custom', 'n1', 'session-1', { step: 'fresh' });
+      const uri = plugin.appendTrace(envelope);
+      expect(plugin.getTrace(uri)).toEqual(envelope);
     });
   });
 
   describe('shutdown', () => {
     it('should persist on shutdown and clear in-memory state', () => {
       plugin = new LocalJsonTracePlugin(traceDir);
-      const uri = plugin.appendTrace({ step: 1 });
+      const envelope = createTraceEnvelope('custom', 'n1', 'session-1', { step: 1 });
+      const uri = plugin.appendTrace(envelope);
       plugin.shutdown!();
 
       expect(plugin.getTrace(uri)).toBeNull();
       expect(plugin.getTrace(uri)).toBeNull();
 
       const p2 = new LocalJsonTracePlugin(traceDir);
-      expect(p2.getTrace(uri)).toEqual({ step: 1 });
+      expect(p2.getTrace(uri)).toEqual(envelope);
     });
   });
 });

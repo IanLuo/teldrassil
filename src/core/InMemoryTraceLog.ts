@@ -1,4 +1,4 @@
-import type { ITraceLog, TraceURI } from './ITraceLog';
+import type { ITraceLog, TraceURI, TraceEnvelope } from './ITraceLog';
 
 /**
  * In-memory mock of the Trace Log for kernel bootstrap tests.
@@ -8,16 +8,16 @@ export class InMemoryTraceLog implements ITraceLog {
   readonly name = 'Trace';
   readonly version = '0.1.0-mock';
 
-  private store = new Map<number, unknown>();
+  private store = new Map<number, TraceEnvelope>();
   private nextId = 0;
 
   initialize = (): void => {};
   ping = async (): Promise<boolean> => true;
   shutdown = (): void => { this.store.clear(); this.nextId = 0; };
 
-  appendTrace(payload: unknown): TraceURI {
+  appendTrace(envelope: TraceEnvelope): TraceURI {
     const id = this.nextId++;
-    this.store.set(id, payload);
+    this.store.set(id, envelope);
     return `trace://v1/${id}` as TraceURI;
   }
 

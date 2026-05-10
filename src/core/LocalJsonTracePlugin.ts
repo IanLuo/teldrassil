@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import type { ITraceLog, TraceURI } from './ITraceLog';
+import type { ITraceLog, TraceURI, TraceEnvelope } from './ITraceLog';
 
 interface PersistedTrace {
-  entries: Array<{ id: number; payload: unknown }>;
+  entries: Array<{ id: number; envelope: TraceEnvelope }>;
   nextId: number;
 }
 
@@ -37,9 +37,9 @@ export class LocalJsonTracePlugin implements ITraceLog {
     this.data = { entries: [], nextId: 0 };
   };
 
-  appendTrace(payload: unknown): TraceURI {
+  appendTrace(envelope: TraceEnvelope): TraceURI {
     const id = this.data.nextId++;
-    this.data.entries.push({ id, payload });
+    this.data.entries.push({ id, envelope });
     this.save();
     return `trace://v1/${id}` as TraceURI;
   }
@@ -48,7 +48,7 @@ export class LocalJsonTracePlugin implements ITraceLog {
     const id = this.parseTraceId(uri);
     if (id === null) return null;
     const entry = this.data.entries.find((e) => e.id === id);
-    return entry ? entry.payload : null;
+    return entry ? entry.envelope : null;
   }
 
   private parseTraceId(uri: string): number | null {

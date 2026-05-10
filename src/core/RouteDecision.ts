@@ -1,4 +1,5 @@
 import type { ITraceLog } from './ITraceLog';
+import { createTraceEnvelope } from './ITraceLog';
 import { SupervisorDecision } from './Supervisor';
 
 export interface RouteDecision {
@@ -22,7 +23,9 @@ export interface RouteDecision {
  */
 export async function recordRouteDecision(
   traceLog: ITraceLog,
-  decision: RouteDecision
+  decision: RouteDecision,
+  sessionId: string,
+  nodeId: string
 ): Promise<string> {
-  return traceLog.appendTrace({ type: 'RouteDecision', ...decision });
+  return traceLog.appendTrace(createTraceEnvelope('route_decision', nodeId, sessionId, decision));
 }

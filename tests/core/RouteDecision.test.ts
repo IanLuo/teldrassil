@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SupervisorDecision } from '../../src/core/Supervisor';
 import { recordRouteDecision, type RouteDecision } from '../../src/core/RouteDecision';
-import type { ITraceLog, TraceURI } from '../../src/core/ITraceLog';
+import type { ITraceLog, TraceURI, TraceEnvelope } from '../../src/core/ITraceLog';
 
 function createMockTraceLog(uri: TraceURI = 'trace://v1/00001' as TraceURI): ITraceLog {
   return {
@@ -75,7 +75,7 @@ describe('RouteDecision', () => {
   });
 
   describe('recordRouteDecision', () => {
-    it('should call appendTrace on the trace log with correct payload shape', async () => {
+    it('should call appendTrace on the trace log with a TraceEnvelope', async () => {
       const traceLog = createMockTraceLog();
       const decision: RouteDecision = {
         from: 'senior_coder',
@@ -85,20 +85,23 @@ describe('RouteDecision', () => {
         timestamp: new Date().toISOString(),
       };
 
-      const uri = await recordRouteDecision(traceLog, decision);
+      const uri = await recordRouteDecision(traceLog, decision, 'session-1', 'node-1');
 
       expect(traceLog.appendTrace).toHaveBeenCalledTimes(1);
-      const payload = (traceLog.appendTrace as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const envelope = (traceLog.appendTrace as ReturnType<typeof vi.fn>).mock.calls[0][0] as TraceEnvelope;
 
-      expect(payload.type).toBe('RouteDecision');
-      expect(payload.from).toBe('senior_coder');
-      expect(payload.to).toBe('planner');
-      expect(payload.decision).toBe(SupervisorDecision.PROCEED);
-      expect(payload.reason).toBe('test');
-      expect(payload.timestamp).toBe(decision.timestamp);
+      expect(envelope.type).toBe('route_decision');
+      expect(envelope.nodeId).toBe('node-1');
+      expect(envelope.sessionId).toBe('session-1');
+      expect(envelope.payload).toMatchObject({
+        from: 'senior_coder',
+        to: 'planner',
+        decision: SupervisorDecision.PROCEED,
+        reason: 'test',
+      });
     });
 
-    it('should include metadata in the trace log payload when provided', async () => {
+    it('should include metadata in the TraceEnvelope payload when provided', async () => {
       const traceLog = createMockTraceLog();
       const decision: RouteDecision = {
         from: 'worker',
@@ -109,9 +112,10 @@ describe('RouteDecision', () => {
         metadata: { failedCheck: 'length' },
       };
 
-      await recordRouteDecision(traceLog, decision);
+      await recordRouteDecision(traceLog, decision, 'session-1', 'node-1');
 
-      const payload = (traceLog.appendTrace as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const envelope = (traceLog.appendTrace as ReturnType<typeof vi.fn>).mock.calls[0][0] as TraceEnvelope;
+      const payload = envelope.payload as Record<string, unknown>;
       expect(payload.metadata).toEqual({ failedCheck: 'length' });
     });
 
@@ -126,11 +130,11 @@ describe('RouteDecision', () => {
         timestamp: new Date().toISOString(),
       };
 
-      const uri = await recordRouteDecision(traceLog, decision);
+      const uri = await recordRouteDecision(traceLog, decision, 'session-1', 'node-1');
       expect(uri).toBe(expectedUri);
     });
 
-    it('should serialize BLOCK decision with metadata to trace log', async () => {
+    it('should serialize BLOCK decision with metadata to TraceEnvelope', async () => {
       const traceLog = createMockTraceLog();
       const decision: RouteDecision = {
         from: 'senior_coder',
@@ -145,10 +149,11 @@ describe('RouteDecision', () => {
         },
       };
 
-      const uri = await recordRouteDecision(traceLog, decision);
+      const uri = await recordRouteDecision(traceLog, decision, 'session-1', 'node-1');
 
-      const payload = (traceLog.appendTrace as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(payload.type).toBe('RouteDecision');
+      const envelope = (traceLog.appendTrace as ReturnType<typeof vi.fn>).mock.calls[0][0] as TraceEnvelope;
+      expect(envelope.type).toBe('route_decision');
+      const payload = envelope.payload as Record<string, unknown>;
       expect(payload.decision).toBe(SupervisorDecision.BLOCK);
       expect(payload.reason).toBe('Human attach required: ambiguous requirements');
       expect(payload.metadata).toEqual({
