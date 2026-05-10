@@ -19,6 +19,7 @@ interface PersistedTrace {
 export class LocalJsonTracePlugin implements ITraceLog {
   readonly name = 'Trace';
   readonly version = '0.1.0';
+  readonly kind = 'trace' as const;
 
   private traceDir: string;
   private traceFile: string;

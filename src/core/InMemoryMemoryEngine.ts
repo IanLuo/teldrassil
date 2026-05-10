@@ -7,6 +7,7 @@ import type { IMemoryEngine, MemoryURI, MemoryEntryMetadata } from './IMemoryEng
 export class InMemoryMemoryEngine implements IMemoryEngine {
   readonly name = 'Memory';
   readonly version = '0.1.0-mock';
+  readonly kind = 'memory' as const;
 
   private store = new Map<string, unknown>();
 

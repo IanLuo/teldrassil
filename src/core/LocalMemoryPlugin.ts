@@ -28,6 +28,7 @@ class StoredEntry {
 export class LocalMemoryPlugin implements IMemoryEngine {
   readonly name = 'Memory';
   readonly version = '0.1.0';
+  readonly kind = 'memory' as const;
 
   private dek: Buffer;
   private store = new Map<string, StoredEntry>();

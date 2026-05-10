@@ -1,4 +1,4 @@
-import { PluginRegistry } from './PluginRegistry';
+import { PluginRegistry, inferPluginKind } from './PluginRegistry';
 import { SystemExit } from './SystemExit';
 
 export const VITAL_PLUGINS = ['State', 'Memory', 'Vault', 'Trace'] as const;
@@ -31,8 +31,7 @@ export class BootstrapSequence {
     const allPlugins = this.registry.getAllPlugins();
     let hasDriver = false;
     for (const plugin of allPlugins.values()) {
-      // Drivers typically implement translate() or countTokens(), or simply end with 'Driver'
-      if (typeof (plugin as any).translate === 'function' || plugin.name.endsWith('Driver') || (plugin as any).getCapabilities) {
+      if (inferPluginKind(plugin) === 'driver') {
         hasDriver = true;
         if (typeof plugin.ping !== 'function') {
           throw new SystemExit(`Vital plugin ${plugin.name} does not implement ping`);

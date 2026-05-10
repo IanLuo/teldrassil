@@ -7,6 +7,7 @@ import type { IStateManager, StateEntry } from './IStateManager';
 export class InMemoryStateManager implements IStateManager {
   readonly name = 'State';
   readonly version = '0.1.0-mock';
+  readonly kind = 'state' as const;
 
   private entries: StateEntry[] = [];
   private currentNode = 'idle';

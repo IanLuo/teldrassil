@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PluginRegistry, Plugin } from '@/core/PluginRegistry';
+import { PluginRegistry, Plugin, PluginKind, inferPluginKind } from '@/core/PluginRegistry';
 import { EventBus } from '@/core/EventBus';
 
 describe('PluginRegistry', () => {
@@ -40,5 +40,51 @@ describe('PluginRegistry', () => {
 
     const retrieved = registry.getPlugin('test-plugin');
     expect(retrieved).toBe(testPlugin);
+  });
+});
+
+describe('inferPluginKind', () => {
+  const basePlugin: Plugin = {
+    name: 'test',
+    initialize: vi.fn(),
+  };
+
+  it('should return explicit kind when set', () => {
+    const plugin: Plugin = { ...basePlugin, name: 'MyDriver', kind: 'driver' };
+    expect(inferPluginKind(plugin)).toBe('driver');
+  });
+
+  it('should infer driver from generate() method', () => {
+    const plugin: Plugin = { ...basePlugin, name: 'Anything', generate: vi.fn() } as any;
+    expect(inferPluginKind(plugin)).toBe('driver');
+  });
+
+  it('should infer vault from name containing "Vault"', () => {
+    expect(inferPluginKind({ ...basePlugin, name: 'EnvVault' })).toBe('vault');
+    expect(inferPluginKind({ ...basePlugin, name: 'MyVaultPlugin' })).toBe('vault');
+  });
+
+  it('should infer state from name containing "State"', () => {
+    expect(inferPluginKind({ ...basePlugin, name: 'State' })).toBe('state');
+    expect(inferPluginKind({ ...basePlugin, name: 'LocalState' })).toBe('state');
+  });
+
+  it('should infer memory from name containing "Memory"', () => {
+    expect(inferPluginKind({ ...basePlugin, name: 'Memory' })).toBe('memory');
+    expect(inferPluginKind({ ...basePlugin, name: 'LocalMemory' })).toBe('memory');
+  });
+
+  it('should infer trace from name containing "Trace"', () => {
+    expect(inferPluginKind({ ...basePlugin, name: 'Trace' })).toBe('trace');
+    expect(inferPluginKind({ ...basePlugin, name: 'LocalTrace' })).toBe('trace');
+  });
+
+  it('should infer driver from name containing "Driver"', () => {
+    expect(inferPluginKind({ ...basePlugin, name: 'Driver' })).toBe('driver');
+    expect(inferPluginKind({ ...basePlugin, name: 'SomeDriver' })).toBe('driver');
+  });
+
+  it('should return extension for unrecognized plugins', () => {
+    expect(inferPluginKind({ ...basePlugin, name: 'UnknownPlugin' })).toBe('extension');
   });
 });

@@ -9,6 +9,8 @@ interface ParsedModel {
 export class UnifiedModelDriver implements IModelDriver {
   readonly name: string;
   readonly version = '0.1.0';
+  readonly kind = 'driver' as const;
+  readonly capabilities = ['generate', 'translate', 'structured-output'];
 
   private vault: IVault;
   private secretKeyMap: Record<string, string>;

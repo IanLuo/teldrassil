@@ -7,6 +7,7 @@ import type { ITraceLog, TraceURI, TraceEnvelope } from './ITraceLog';
 export class InMemoryTraceLog implements ITraceLog {
   readonly name = 'Trace';
   readonly version = '0.1.0-mock';
+  readonly kind = 'trace' as const;
 
   private store = new Map<number, TraceEnvelope>();
   private nextId = 0;

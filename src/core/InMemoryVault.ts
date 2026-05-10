@@ -7,6 +7,7 @@ import type { IVault, DEK } from './IVault';
 export class InMemoryVault implements IVault {
   readonly name = 'Vault';
   readonly version = '0.1.0-mock';
+  readonly kind = 'vault' as const;
 
   private secrets = new Map<string, string>();
   private dekCounter = 0;

@@ -8,6 +8,7 @@ import { Supervisor, SupervisorDecision, type SupervisorInput } from './Supervis
 import { recordRouteDecision } from './RouteDecision';
 import { SystemExit } from './SystemExit';
 import type { HumanInputRequest, HumanInputResult } from './HumanProtocol';
+import { inferPluginKind } from './PluginRegistry';
 
 function parseEvaluatorDecision(output: string): 'PROCEED' | 'REWORK' | 'BLOCK' {
     const match = output.match(/decision\s*[:=]\s*(PROCEED|REWORK|BLOCK)/i);
@@ -345,7 +346,12 @@ export class WorkflowRunner {
   private getDriver(driverId: string): IModelDriver {
     const plugin = this.kernel.getRegistry().getPlugin(driverId);
     if (!plugin) {
-      throw new Error(`Driver plugin '${driverId}' not found in kernel registry`);
+      const available = Array.from(this.kernel.getRegistry().getAllPlugins().keys());
+      throw new Error(`Driver plugin '${driverId}' not found in kernel registry. Available plugins: [${available.join(', ')}]`);
+    }
+    const kind = inferPluginKind(plugin);
+    if (kind !== 'driver') {
+      throw new Error(`Plugin '${driverId}' is kind '${kind}', not a driver. Cannot use as model_driver.`);
     }
     return plugin as unknown as IModelDriver;
   }

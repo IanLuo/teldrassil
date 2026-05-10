@@ -20,6 +20,8 @@ export type HostFunction = (input: { messages: Message[]; schema?: unknown }) =>
 export class HostFunctionDriver implements IModelDriver {
   readonly name: string;
   readonly version = '0.1.0';
+  readonly kind = 'driver' as const;
+  readonly capabilities = ['generate'];
 
   private functions: Record<string, HostFunction>;
 

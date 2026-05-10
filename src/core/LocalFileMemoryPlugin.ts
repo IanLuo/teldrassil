@@ -14,6 +14,7 @@ interface StoredEntry {
 export class LocalFileMemoryPlugin implements IMemoryEngine {
   readonly name = 'Memory';
   readonly version = '0.2.0';
+  readonly kind = 'memory' as const;
 
   private dek: Buffer;
   private memoryDir: string;

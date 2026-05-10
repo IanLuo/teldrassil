@@ -1324,4 +1324,87 @@ describe('WorkflowRunner', () => {
 
     expect(blockRequested).toBe(true);
   });
+
+  // ---- 20. Driver identification (kind/capabilities) ----
+
+  it('should throw when manifest driver ID references a non-driver plugin (kind mismatch)', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'step_1', agent: 'agent_a', max_retries: 1 }],
+    });
+    const kernel = createMicroKernel();
+
+    // Register a State plugin as "test_driver" (name collision with manifest driver id)
+    const statePlugin = {
+      name: 'test_driver',
+      kind: 'state' as const,
+      version: '1.0.0',
+      initialize: vi.fn(),
+      ping: async () => true,
+      shutdown: vi.fn(),
+    };
+    kernel.getRegistry().register(statePlugin);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    await expect(runner.run()).rejects.toThrow(/not a driver/i);
+  });
+
+  it('should accept driver plugin with kind="driver" and capabilities', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'step_1', agent: 'agent_a', max_retries: 1 }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'output' }));
+    // Simulate driver with kind/capabilities
+    const enhancedDriver = {
+      ...driver,
+      kind: 'driver' as const,
+      capabilities: ['generate', 'translate'],
+    };
+    kernel.getRegistry().register(enhancedDriver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+  });
+
+  it('should accept backward-compat driver without kind field (fallback heuristic)', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'step_1', agent: 'agent_a', max_retries: 1 }],
+    });
+    const kernel = createMicroKernel();
+
+    // Driver without kind field (backward compat)
+    const driver = createTestDriver(async () => ({ content: 'backward compat output' }));
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+  });
+
+  it('should throw when manifest driver ID has no matching plugin in registry', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'step_1', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'nonexistent_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    // Register State and Trace but NOT nonexistent_driver
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    await expect(runner.run()).rejects.toThrow(/not found|not registered/i);
+  });
 });

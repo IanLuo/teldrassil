@@ -1,8 +1,25 @@
 import { EventBus } from './EventBus';
 
+export type PluginKind = 'driver' | 'state' | 'memory' | 'vault' | 'trace' | 'extension';
+
+export function inferPluginKind(plugin: Plugin): PluginKind {
+  if (plugin.kind) return plugin.kind;
+
+  if (typeof (plugin as any).generate === 'function') return 'driver';
+  if (plugin.name.toLowerCase().includes('vault')) return 'vault';
+  if (plugin.name.toLowerCase().includes('state')) return 'state';
+  if (plugin.name.toLowerCase().includes('memory')) return 'memory';
+  if (plugin.name.toLowerCase().includes('trace')) return 'trace';
+  if (plugin.name.toLowerCase().includes('driver')) return 'driver';
+
+  return 'extension';
+}
+
 export interface Plugin {
   name: string;
   version?: string;
+  kind?: PluginKind;
+  capabilities?: string[];
   initialize: (eventBus: EventBus) => void;
   shutdown?: () => void;
   ping?: () => Promise<boolean>;

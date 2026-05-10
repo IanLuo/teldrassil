@@ -9,6 +9,8 @@ import type { IModelDriver, Message, VendorPayload, DriverCapabilities } from '.
 export class InMemoryModelDriver implements IModelDriver {
   readonly name: string;
   readonly version = '0.1.0-mock';
+  readonly kind = 'driver' as const;
+  readonly capabilities = ['generate'];
 
   private healthy: boolean;
 

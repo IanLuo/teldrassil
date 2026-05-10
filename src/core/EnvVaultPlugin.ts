@@ -13,6 +13,7 @@ import type { IVault, DEK } from './IVault';
 export class EnvVaultPlugin implements IVault {
   readonly name = 'Vault';
   readonly version = '0.1.0';
+  readonly kind = 'vault' as const;
 
   private masterKey: Buffer;
   private secrets: Map<string, string>;

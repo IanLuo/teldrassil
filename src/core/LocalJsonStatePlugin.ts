@@ -21,6 +21,7 @@ const MAX_PAYLOAD_BYTES = 4096;
 export class LocalJsonStatePlugin implements IStateManager {
   readonly name = 'State';
   readonly version = '0.2.0';
+  readonly kind = 'state' as const;
 
   private stateDir: string;
   private stateFile: string;
