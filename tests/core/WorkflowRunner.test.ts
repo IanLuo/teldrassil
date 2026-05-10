@@ -190,8 +190,8 @@ describe('WorkflowRunner', () => {
     expect(result.steps[0].retries).toBe(1);
   });
 
-  // 4. ESCALATE — step fails more than max_retries
-  it('should throw SystemExit when step exceeds max retries', async () => {
+  // 4. ESCALATE — step fails more than max_retries → records ESCALATE decision, does not throw
+  it('should record ESCALATE decision when step exceeds max retries (no throw)', async () => {
     const manifest = createTestManifest({
       sequence: [{ step: 'failing_step', agent: 'agent_a', max_retries: 2 }],
       agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
@@ -199,8 +199,9 @@ describe('WorkflowRunner', () => {
     const kernel = createMicroKernel();
 
     const driver = createTestDriver(async () => ({ content: 'short' }));
+    const stateManager = createInMemoryStateManager();
     kernel.getRegistry().register(driver);
-    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(stateManager);
     kernel.getRegistry().register(createInMemoryTraceLog());
 
     const stepCriteria = [
@@ -208,7 +209,15 @@ describe('WorkflowRunner', () => {
     ];
 
     const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
-    await expect(runner.run()).rejects.toThrow(SystemExit);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.ESCALATE);
+    expect(result.steps[0].step).toBe('failing_step');
+    expect(result.steps[0].retries).toBe(2);
+
+    const history = stateManager.getHistory();
+    expect(history.some((e) => e.status === 'failed')).toBe(true);
   });
 
   // 5. Multiple steps with different agents
@@ -342,7 +351,7 @@ describe('WorkflowRunner', () => {
     expect(history[3]).toMatchObject({ node_id: 'state_test', status: 'completed' });
   });
 
-  it('should record failed status before throwing SystemExit on ESCALATE', async () => {
+  it('should record failed status on ESCALATE (no throw, result returned)', async () => {
     const manifest = createTestManifest({
       sequence: [{ step: 'fail_step', agent: 'agent_a', max_retries: 1 }],
       agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
@@ -360,12 +369,16 @@ describe('WorkflowRunner', () => {
     ];
 
     const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
-    await expect(runner.run()).rejects.toThrow(SystemExit);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.ESCALATE);
+    expect(result.steps[0].retries).toBe(1);
 
     const history = stateManager.getHistory();
     // With max_retries=1 (>= semantics):
     // attempt0 fails → 0>=1 false → REWORK, stepRetries=1
-    // attempt1 fails → 1>=1 true → ESCALATE → records failed → throws
+    // attempt1 fails → 1>=1 true → ESCALATE → records failed
     expect(history.some((e) => e.status === 'failed')).toBe(true);
     expect(history.some((e) => e.status === 'in_progress')).toBe(true);
     expect(history.some((e) => e.status === 'rework')).toBe(true);
@@ -973,7 +986,11 @@ describe('WorkflowRunner', () => {
     ];
 
     const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
-    await expect(runner.run()).rejects.toThrow(SystemExit);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.ESCALATE);
+    expect(result.steps[0].retries).toBe(0);
 
     // Only 1 call to generate — no retry
     expect(callCount).toBe(1);
@@ -1006,7 +1023,11 @@ describe('WorkflowRunner', () => {
     ];
 
     const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
-    await expect(runner.run()).rejects.toThrow(SystemExit);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.ESCALATE);
+    expect(result.steps[0].retries).toBe(1);
 
     // First try + 1 retry = 2 calls to generate
     expect(callCount).toBe(2);
@@ -1034,10 +1055,65 @@ describe('WorkflowRunner', () => {
     ];
 
     const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
-    await expect(runner.run()).rejects.toThrow(SystemExit);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.ESCALATE);
+    expect(result.steps[0].retries).toBe(3);
 
     // First try + 3 retries = 4 calls to generate
     expect(callCount).toBe(4);
+  });
+
+  it('should continue to next step after ESCALATE on a prior step', async () => {
+    const manifest = createTestManifest({
+      sequence: [
+        { step: 'step_escalated', agent: 'agent_a', max_retries: 1 },
+        { step: 'step_next', agent: 'agent_b', max_retries: 1 },
+      ],
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'agent_b', use_driver: 'test_driver', model: 'test:model-b', status: 'auto' },
+      ],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async (opts) => {
+      callCount++;
+      if (opts.model === 'test:model-a') return { content: 'short' };
+      return { content: 'second step output ok!' };
+    });
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const stepCriteria = [
+      { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+    ];
+
+    const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
+    const result = await runner.run();
+
+    // Both steps should be in results
+    expect(result.steps).toHaveLength(2);
+
+    // First step escalated
+    expect(result.steps[0].step).toBe('step_escalated');
+    expect(result.steps[0].agent).toBe('agent_a');
+    expect(result.steps[0].decision).toBe(SupervisorDecision.ESCALATE);
+
+    // Second step still executed and completed
+    expect(result.steps[1].step).toBe('step_next');
+    expect(result.steps[1].agent).toBe('agent_b');
+    expect(result.steps[1].decision).toBe(SupervisorDecision.COMPLETE);
+    expect(result.steps[1].output).toBe('second step output ok!');
+
+    // State should include failed for step_escalated, completed for step_next
+    const history = stateManager.getHistory();
+    expect(history.some((e) => e.node_id === 'step_escalated' && e.status === 'failed')).toBe(true);
+    expect(history.some((e) => e.node_id === 'step_next' && e.status === 'completed')).toBe(true);
   });
 
   it('should invoke evaluator and rework when evaluator returns structured REWORK', async () => {

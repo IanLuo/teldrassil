@@ -219,9 +219,8 @@ export class WorkflowRunner {
             worker_id: step.agent,
             artifact_ref: null,
           });
-          throw new SystemExit(
-            `Step '${step.step}' exceeded max retries (${maxStepRetries})`
-          );
+          // Don't throw - let the host handle through policy
+          break;  // breaks out of while(true), continues to next step in for loop
         }
 
         if (decision === SupervisorDecision.BLOCK) {
