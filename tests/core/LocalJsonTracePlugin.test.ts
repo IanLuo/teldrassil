@@ -145,6 +145,44 @@ describe('LocalJsonTracePlugin', () => {
       const uri = plugin.appendTrace(envelope);
       expect(plugin.getTrace(uri)).toEqual(envelope);
     });
+
+    it('should rename corrupt file, append recovery event, and work normally after', () => {
+      const traceFile = path.join(traceDir, 'trace.json');
+      fs.mkdirSync(traceDir, { recursive: true });
+      fs.writeFileSync(traceFile, '{{{broken{{{json', 'utf8');
+
+      plugin = new LocalJsonTracePlugin(traceDir);
+
+      // Corrupted file should be renamed
+      expect(fs.existsSync(traceFile)).toBe(false);
+      const files = fs.readdirSync(traceDir);
+      const corruptFile = files.find((f) => f.startsWith('trace.corrupt.'));
+      expect(corruptFile).toBeDefined();
+
+      // Recovery event should be the first entry (URI trace://v1/0)
+      const recovery = plugin.getTrace('trace://v1/0' as any) as any;
+      expect(recovery).not.toBeNull();
+      expect(recovery.type).toBe('recovery');
+      expect(recovery.nodeId).toBe('system');
+      expect(recovery.payload).toMatchObject({
+        originalFile: expect.stringMatching(/^trace\.corrupt\.\d+\.json$/),
+        reason: 'JSON parse failure',
+      });
+
+      // New entries should work normally after recovery
+      const newEnvelope = createTraceEnvelope('custom', 'n1', 'session-1', { step: 'fresh' });
+      const uri = plugin.appendTrace(newEnvelope);
+      expect(plugin.getTrace(uri)).toEqual(newEnvelope);
+
+      // Verify on-disk state: recovery event + new entry
+      const corruptRaw = fs.readFileSync(path.join(traceDir, corruptFile!), 'utf8');
+      expect(corruptRaw).toBe('{{{broken{{{json');
+
+      const freshRaw = JSON.parse(fs.readFileSync(path.join(traceDir, 'trace.json'), 'utf8'));
+      expect(freshRaw.entries).toHaveLength(2);
+      expect(freshRaw.entries[0].envelope.type).toBe('recovery');
+      expect(freshRaw.entries[1].envelope.payload).toEqual({ step: 'fresh' });
+    });
   });
 
   describe('shutdown', () => {

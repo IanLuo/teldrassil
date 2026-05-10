@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { ITraceLog, TraceURI, TraceEnvelope } from './ITraceLog';
+import { createTraceEnvelope, type ITraceLog, type TraceURI, type TraceEnvelope } from './ITraceLog';
 
 interface PersistedTrace {
   entries: Array<{ id: number; envelope: TraceEnvelope }>;
@@ -70,7 +70,21 @@ export class LocalJsonTracePlugin implements ITraceLog {
         }
         return JSON.parse(raw) as PersistedTrace;
       } catch {
-        // Corrupted trace — start fresh
+        const timestamp = Date.now();
+        const corruptName = `trace.corrupt.${timestamp}.json`;
+        try {
+          fs.renameSync(this.traceFile, path.join(this.traceDir, corruptName));
+        } catch {
+          // If rename fails (e.g., target already exists), just proceed
+        }
+        const recoveryEvent = createTraceEnvelope('recovery', 'system', `recovery-${timestamp}`, {
+          originalFile: corruptName,
+          reason: 'JSON parse failure',
+        });
+        return {
+          entries: [{ id: 0, envelope: recoveryEvent }],
+          nextId: 1,
+        };
       }
     }
 
