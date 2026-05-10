@@ -76,12 +76,15 @@ export interface GenerateOptions {
 export interface GenerateResult {
   /** The generated text content */
   content: string;
+  /** Structured object output (present when schema is provided) */
+  object?: unknown;
   /** Tool calls invoked by the model (if any) */
   toolCalls?: unknown[];
   /** Token usage statistics */
-  usage?: {
+  usage: {
     inputTokens: number;
     outputTokens: number;
+    totalTokens: number;
   };
 }
 

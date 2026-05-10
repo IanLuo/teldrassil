@@ -38,6 +38,28 @@ export class UnifiedModelDriver implements IModelDriver {
 
     const languageModel = await this.createLanguageModel(provider, modelId, apiKey);
 
+    if (options.schema) {
+      const { generateObject } = await import('ai');
+
+      const result = await generateObject({
+        model: languageModel,
+        schema: options.schema as any,
+        messages: options.messages as any,
+        ...(options.maxTokens !== undefined ? { maxTokens: options.maxTokens } : {}),
+        ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+      });
+
+      return {
+        content: JSON.stringify(result.object),
+        object: result.object,
+        usage: {
+          inputTokens: result.usage?.inputTokens ?? 0,
+          outputTokens: result.usage?.outputTokens ?? 0,
+          totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+        },
+      };
+    }
+
     const { generateText } = await import('ai');
 
     const result = await generateText({
@@ -53,8 +75,9 @@ export class UnifiedModelDriver implements IModelDriver {
         usage: {
           inputTokens: result.usage.inputTokens ?? 0,
           outputTokens: result.usage.outputTokens ?? 0,
+          totalTokens: (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
         },
-      } : { usage: { inputTokens: 0, outputTokens: 0 } }),
+      } : { usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }),
     };
   }
 

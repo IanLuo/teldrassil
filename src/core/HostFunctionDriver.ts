@@ -43,7 +43,20 @@ export class HostFunctionDriver implements IModelDriver {
       schema: options.schema,
     });
 
-    return { content: result };
+    const response: GenerateResult = {
+      content: result,
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    };
+
+    if (options.schema) {
+      try {
+        response.object = JSON.parse(result);
+      } catch {
+        // Host function returned non-JSON string despite schema
+      }
+    }
+
+    return response;
   }
 
   async translate(messages: Message[]): Promise<VendorPayload> {

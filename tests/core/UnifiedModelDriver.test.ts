@@ -4,9 +4,11 @@ import type { IVault } from '../../src/core/IVault';
 import type { Message, GenerateOptions } from '../../src/core/IModelDriver';
 
 const mockGenerateText = vi.fn();
+const mockGenerateObject = vi.fn();
 
 vi.mock('ai', () => ({
   generateText: mockGenerateText,
+  generateObject: mockGenerateObject,
 }));
 
 function createMockVault(secrets: Record<string, string> = {}): IVault {
@@ -140,6 +142,7 @@ describe('UnifiedModelDriver', () => {
       expect(result.content).toBe('Hi there!');
       expect(result.usage?.inputTokens).toBe(10);
       expect(result.usage?.outputTokens).toBe(3);
+      expect(result.usage?.totalTokens).toBe(13);
     });
 
     it('should call generateText for openai provider', async () => {
@@ -169,7 +172,69 @@ describe('UnifiedModelDriver', () => {
         messages: [{ role: 'user', content: 'Hi' }],
       });
 
-      expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
+      expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0, totalTokens: 0 });
+    });
+
+    it('should not return object when no schema is provided', async () => {
+      mockGenerateText.mockResolvedValue({
+        text: 'Hi there!',
+        usage: { inputTokens: 5, outputTokens: 5 },
+      });
+
+      const result = await driver.generate!({
+        model: 'anthropic:claude-sonnet-4-20250514',
+        messages: [{ role: 'user', content: 'Hi' }],
+      });
+
+      expect(result.object).toBeUndefined();
+      expect(mockGenerateObject).not.toHaveBeenCalled();
+    });
+
+    it('should use generateObject when schema is provided', async () => {
+      const schema = {
+        type: 'object',
+        properties: { name: { type: 'string' }, age: { type: 'number' } },
+        required: ['name', 'age'],
+      };
+
+      mockGenerateObject.mockResolvedValue({
+        object: { name: 'Alice', age: 30 },
+        usage: { inputTokens: 20, outputTokens: 10 },
+      });
+
+      const result = await driver.generate!({
+        model: 'anthropic:claude-sonnet-4-20250514',
+        messages: [{ role: 'user', content: 'Return a person object' }],
+        schema,
+      });
+
+      expect(mockGenerateObject).toHaveBeenCalledTimes(1);
+      expect(mockGenerateText).not.toHaveBeenCalled();
+
+      expect(result.content).toBe(JSON.stringify({ name: 'Alice', age: 30 }));
+      expect(result.object).toEqual({ name: 'Alice', age: 30 });
+      expect(result.usage).toEqual({ inputTokens: 20, outputTokens: 10, totalTokens: 30 });
+    });
+
+    it('should pass maxTokens and temperature to generateObject when schema is present', async () => {
+      const schema = { type: 'object', properties: { value: { type: 'string' } } };
+
+      mockGenerateObject.mockResolvedValue({
+        object: { value: 'test' },
+        usage: { inputTokens: 1, outputTokens: 1 },
+      });
+
+      await driver.generate!({
+        model: 'anthropic:claude-sonnet-4-20250514',
+        messages: [{ role: 'user', content: 'Test' }],
+        schema,
+        maxTokens: 500,
+        temperature: 0.3,
+      });
+
+      const callArgs = mockGenerateObject.mock.calls[0][0];
+      expect(callArgs.maxTokens).toBe(500);
+      expect(callArgs.temperature).toBe(0.3);
     });
   });
 

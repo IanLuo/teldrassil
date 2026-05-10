@@ -76,7 +76,7 @@ describe('HostFunctionDriver', () => {
 
       expect(result.content).toBe('Echo: Hello');
       expect(result.toolCalls).toBeUndefined();
-      expect(result.usage).toBeUndefined();
+      expect(result.usage).toEqual({ inputTokens: 0, outputTokens: 0, totalTokens: 0 });
     });
 
     it('should throw when action_id is not registered', async () => {
