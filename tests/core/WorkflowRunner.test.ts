@@ -640,8 +640,8 @@ describe('WorkflowRunner', () => {
     // The wrong-id response was sent but the runner ignored it and waited for the right one
   });
 
-  // 13. Evaluator returning PROCEED
-  it('should invoke evaluator and proceed when evaluator returns PROCEED', async () => {
+  // 13. Evaluator returning PROCEED (structured format)
+  it('should invoke evaluator and proceed when evaluator returns structured PROCEED', async () => {
     const manifest = createTestManifest({
       agents: [
         { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
@@ -657,7 +657,7 @@ describe('WorkflowRunner', () => {
     const driver = createTestDriver(async (opts) => {
       if (opts.model === 'test:evaluator') {
         evalCallCount++;
-        return { content: 'Looks good. PROCEED.' };
+        return { content: 'Looks good. decision: PROCEED' };
       }
       return { content: 'agent output' };
     });
@@ -778,7 +778,7 @@ describe('WorkflowRunner', () => {
     expect(callCount).toBe(4);
   });
 
-  it('should invoke evaluator and rework when evaluator returns REWORK', async () => {
+  it('should invoke evaluator and rework when evaluator returns structured REWORK', async () => {
     const manifest = createTestManifest({
       agents: [
         { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
@@ -795,8 +795,8 @@ describe('WorkflowRunner', () => {
     const driver = createTestDriver(async (opts) => {
       if (opts.model === 'test:evaluator') {
         evalCallCount++;
-        if (evalCallCount === 1) return { content: 'Needs work. REWORK.' };
-        return { content: 'PROCEED.' };
+        if (evalCallCount === 1) return { content: 'Needs work. decision: REWORK' };
+        return { content: 'decision: PROCEED' };
       }
       agentCallCount++;
       return { content: `agent output ${agentCallCount}` };
@@ -812,5 +812,248 @@ describe('WorkflowRunner', () => {
     expect(evalCallCount).toBe(2);
     expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
     expect(result.steps[0].retries).toBe(1);
+  });
+
+  // 15. Evaluator: malformed output defaults to REWORK
+  it('should default to REWORK on malformed evaluator output', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'step_with_eval', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 3 }
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    let evalCallCount = 0;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        evalCallCount++;
+        if (evalCallCount === 1) return { content: 'gibberish without any decision keyword' };
+        if (evalCallCount === 2) return { content: 'still no valid decision here' };
+        return { content: 'decision: PROCEED' };
+      }
+      return { content: 'agent output that passes' };
+    });
+    const traceLog = createInMemoryTraceLog();
+    const appendTraceSpy = vi.spyOn(traceLog, 'appendTrace');
+
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(traceLog);
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(evalCallCount).toBeGreaterThanOrEqual(2);
+
+    // Check that malformed outputs were logged as REWORK decisions
+    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
+      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
+    );
+    expect(evalTraces.length).toBeGreaterThanOrEqual(2);
+    expect(evalTraces[0][0]).toMatchObject({ decision: 'REWORK' });
+  });
+
+  // 16. Evaluator: BLOCK triggers human intervention path
+  it('should trigger BLOCK path when evaluator returns decision: BLOCK', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'block_step', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 }
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    let evalCallCount = 0;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        evalCallCount++;
+        return { content: 'Requires human review. decision: BLOCK' };
+      }
+      return { content: 'agent output needing review' };
+    });
+    const traceLog = createInMemoryTraceLog();
+    const appendTraceSpy = vi.spyOn(traceLog, 'appendTrace');
+
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(traceLog);
+
+    // Subscribe to human:required and respond with proceed
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(evalCallCount).toBe(1);
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+
+    // Verify EvaluatorDecision was logged with BLOCK
+    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
+      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
+    );
+    expect(evalTraces).toHaveLength(1);
+    expect(evalTraces[0][0]).toMatchObject({
+      type: 'EvaluatorDecision',
+      step: 'block_step',
+      evaluator: 'evaluator_agent',
+      decision: 'BLOCK'
+    });
+  });
+
+  // 17. Evaluator: various casing and whitespace in structured decision
+  it('should parse structured evaluator decisions with various casing and whitespace', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'step_1', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 },
+        { step: 'step_2', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 2 },
+        { step: 'step_3', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 },
+        { step: 'step_4', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 },
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    const evalResponses = [
+      'DECISION: PROCEED',          // uppercase keyword
+      'decision:rework',            // no space after colon → triggers rework
+      'decision: PROCEED',          // fallback after rework (retry)
+      'Decision  :  PROCEED',       // extra whitespace
+      '  decision = proceed  ',     // equals sign variant
+    ];
+    let evalIndex = 0;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        return { content: evalResponses[evalIndex++] ?? 'decision: PROCEED' };
+      }
+      return { content: 'agent output' };
+    });
+    const traceLog = createInMemoryTraceLog();
+    const appendTraceSpy = vi.spyOn(traceLog, 'appendTrace');
+
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(traceLog);
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    // All 4 steps should complete (step_2 needed 1 rework, max_retries=1)
+    expect(result.steps).toHaveLength(4);
+    expect(result.steps[1].retries).toBe(1); // step_2 had rework
+
+    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
+      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
+    );
+    // 5 eval calls: step_1, step_2 (first), step_2 (retry), step_3, step_4
+    expect(evalTraces).toHaveLength(5);
+    expect(evalTraces[0][0]).toMatchObject({ decision: 'PROCEED' }); // DECISION: PROCEED
+    expect(evalTraces[1][0]).toMatchObject({ decision: 'REWORK' });  // decision:rework
+    expect(evalTraces[2][0]).toMatchObject({ decision: 'PROCEED' }); // retry: decision: PROCEED
+    expect(evalTraces[3][0]).toMatchObject({ decision: 'PROCEED' }); // Decision  :  PROCEED
+    expect(evalTraces[4][0]).toMatchObject({ decision: 'PROCEED' }); // decision = proceed
+  });
+
+  // 18. Evaluator: structured format takes precedence over sentence content
+  it('should use structured decision even when REWORK/PROCEED appears in prose', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'step_1', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 },
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        // "this does NOT need rework" — old substring code would say REWORK
+        // Structured format says PROCEED — new parser picks PROCEED
+        return { content: 'This output does NOT need REWORK. It passes all checks. decision: PROCEED' };
+      }
+      return { content: 'agent output' };
+    });
+    const traceLog = createInMemoryTraceLog();
+    const appendTraceSpy = vi.spyOn(traceLog, 'appendTrace');
+
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(traceLog);
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    // Step should complete (not rework) even though "REWORK" appears in prose
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+
+    const evalTraces = appendTraceSpy.mock.calls.filter(call =>
+      (call[0] as Record<string, unknown>).type === 'EvaluatorDecision'
+    );
+    expect(evalTraces).toHaveLength(1);
+    // The prose contains "REWORK" but the structured decision says PROCEED
+    expect(evalTraces[0][0]).toMatchObject({ decision: 'PROCEED' });
+  });
+
+  // 19. Evaluator: BLOCK override applies similar to REWORK override
+  it('should override Supervisor PROCEED with BLOCK when evaluator returns BLOCK', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' }
+      ],
+      sequence: [
+        { step: 'block_step', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 }
+      ]
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        return { content: 'decision: BLOCK' };
+      }
+      return { content: 'agent output' };
+    });
+
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    let blockRequested = false;
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      blockRequested = true;
+      const request = payload as HumanInputRequest;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel);
+    await runner.run();
+
+    expect(blockRequested).toBe(true);
   });
 });

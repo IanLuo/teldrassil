@@ -8,6 +8,21 @@ import { recordRouteDecision } from './RouteDecision';
 import { SystemExit } from './SystemExit';
 import type { HumanInputRequest, HumanInputResult } from './HumanProtocol';
 
+function parseEvaluatorDecision(output: string): 'PROCEED' | 'REWORK' | 'BLOCK' {
+    const match = output.match(/decision\s*[:=]\s*(PROCEED|REWORK|BLOCK)/i);
+    if (match) {
+        return match[1].toUpperCase() as 'PROCEED' | 'REWORK' | 'BLOCK';
+    }
+    const lastMatch = output.match(/\b(PROCEED|REWORK|BLOCK)\b/gi);
+    if (lastMatch) {
+        const last = lastMatch[lastMatch.length - 1].toUpperCase();
+        if (last === 'PROCEED' || last === 'REWORK' || last === 'BLOCK') {
+            return last;
+        }
+    }
+    return 'REWORK';
+}
+
 export interface StepResult {
   step: string;
   agent: string;
@@ -99,7 +114,7 @@ export class WorkflowRunner {
           });
 
           const evalOutput = evalResult.content;
-          evaluatorDecision = evalOutput.includes('REWORK') ? 'REWORK' : 'PROCEED';
+          evaluatorDecision = parseEvaluatorDecision(evalOutput);
 
           this.getTraceLog().appendTrace({
             type: 'EvaluatorDecision',
@@ -124,6 +139,10 @@ export class WorkflowRunner {
 
         if (evaluatorDecision === 'REWORK' && (decision === SupervisorDecision.PROCEED || decision === SupervisorDecision.COMPLETE)) {
           decision = SupervisorDecision.REWORK;
+        }
+
+        if (evaluatorDecision === 'BLOCK' && (decision === SupervisorDecision.PROCEED || decision === SupervisorDecision.COMPLETE)) {
+          decision = SupervisorDecision.BLOCK;
         }
 
         await recordRouteDecision(this.getTraceLog(), {
@@ -284,7 +303,7 @@ export class WorkflowRunner {
     return [
       {
         role: 'system',
-        content: `You are evaluator "${agent.id}". Evaluate the output of step "${step.step}". Respond with "PROCEED" if it meets the requirements, or "REWORK" if it needs changes.`,
+        content: `You are evaluator "${agent.id}". Evaluate the output of step "${step.step}". Respond with exactly one of: "decision: PROCEED" if it meets the requirements, "decision: REWORK" if it needs changes, or "decision: BLOCK" if human intervention is needed.`,
       },
       {
         role: 'user',
