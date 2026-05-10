@@ -109,6 +109,30 @@ describe('LocalJsonStatePlugin', () => {
       plugin.shutdown!();
 
       expect(plugin.getHistory()).toHaveLength(0);
+
+      // Verify history is preserved on disk after shutdown
+      const stateFile = path.join(stateDir, 'state.json');
+      expect(fs.existsSync(stateFile)).toBe(true);
+      const raw = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+      expect(raw.history).toHaveLength(1);
+      expect(raw.history[0].node_id).toBe('n1');
+    });
+
+    it('should preserve history after shutdown and new instance creation', () => {
+      const p1 = new LocalJsonStatePlugin(stateDir);
+      p1.append({ node_id: 'n1', status: 'completed', worker_id: 'w1', artifact_ref: null });
+      p1.append({ node_id: 'n2', status: 'in_progress', worker_id: 'w2', artifact_ref: null });
+      p1.shutdown!();
+
+      // In-memory should be cleared after shutdown
+      expect(p1.getHistory()).toHaveLength(0);
+
+      // New instance from the same stateDir should load preserved history
+      const p2 = new LocalJsonStatePlugin(stateDir);
+      expect(p2.getHistory()).toHaveLength(2);
+      expect(p2.getHistory()[0].node_id).toBe('n1');
+      expect(p2.getHistory()[1].node_id).toBe('n2');
+      expect(p2.getCurrentNode()).toBe('n2');
     });
   });
 });

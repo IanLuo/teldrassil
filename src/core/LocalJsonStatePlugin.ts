@@ -37,7 +37,6 @@ export class LocalJsonStatePlugin implements IStateManager {
   shutdown = (): void => {
     this.snapshot();
     this.state = { sessionId: '', currentNode: 'idle', history: [] };
-    this.save();
   };
 
   append(entry: StateEntry): void {
