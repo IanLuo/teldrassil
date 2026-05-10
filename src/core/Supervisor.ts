@@ -30,7 +30,7 @@ export class Supervisor {
    *
    * Decision order:
    * 1. If isBlocked → BLOCK (human intervention required, takes highest priority)
-   * 2. If retryCount > maxRetries → ESCALATE (escalation gate)
+   * 2. If retryCount >= maxRetries → ESCALATE (escalation gate)
    * 3. If any criterion fails → REWORK (binary quality gate)
    * 4. If isComplete → COMPLETE (workflow finished)
    * 5. All criteria pass → PROCEED
@@ -40,7 +40,7 @@ export class Supervisor {
       return SupervisorDecision.BLOCK;
     }
 
-    if (input.retryCount > input.maxRetries) {
+    if (input.retryCount >= input.maxRetries) {
       return SupervisorDecision.ESCALATE;
     }
 

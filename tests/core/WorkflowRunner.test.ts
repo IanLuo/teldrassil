@@ -361,9 +361,9 @@ describe('WorkflowRunner', () => {
     await expect(runner.run()).rejects.toThrow(SystemExit);
 
     const history = stateManager.getHistory();
-    // With max_retries=1: attempt0 fails → rework, stepRetries=1 → 
-    // attempt1 retryCount=1 (> maxRetries=1 not true), fails → rework, stepRetries=2
-    // attempt2 retryCount=2 (> maxRetries=1) → ESCALATE → records failed → throws
+    // With max_retries=1 (>= semantics):
+    // attempt0 fails → 0>=1 false → REWORK, stepRetries=1
+    // attempt1 fails → 1>=1 true → ESCALATE → records failed → throws
     expect(history.some((e) => e.status === 'failed')).toBe(true);
     expect(history.some((e) => e.status === 'in_progress')).toBe(true);
     expect(history.some((e) => e.status === 'rework')).toBe(true);
@@ -689,6 +689,95 @@ describe('WorkflowRunner', () => {
   });
 
   // 14. Evaluator returning REWORK
+  it('should escalate immediately when max_retries is 0 and output fails criteria (no retry)', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'no_retry_step', agent: 'agent_a', max_retries: 0 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      return { content: 'short' };
+    });
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const stepCriteria = [
+      { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+    ];
+
+    const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
+    await expect(runner.run()).rejects.toThrow(SystemExit);
+
+    // Only 1 call to generate — no retry
+    expect(callCount).toBe(1);
+
+    // State should show in_progress then failed (no rework entry)
+    const history = stateManager.getHistory();
+    expect(history.some((e) => e.status === 'failed')).toBe(true);
+    expect(history.some((e) => e.status === 'rework')).toBe(false);
+  });
+
+  it('should escalate exactly at 2nd failure when max_retries is 1 (first try + 1 retry)', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'one_retry_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      return { content: 'short' };
+    });
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const stepCriteria = [
+      { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+    ];
+
+    const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
+    await expect(runner.run()).rejects.toThrow(SystemExit);
+
+    // First try + 1 retry = 2 calls to generate
+    expect(callCount).toBe(2);
+  });
+
+  it('should escalate exactly at 4th failure when max_retries is 3 (first try + 3 retries)', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'three_retry_step', agent: 'agent_a', max_retries: 3 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      return { content: 'short' };
+    });
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const stepCriteria = [
+      { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+    ];
+
+    const runner = new WorkflowRunner(manifest, kernel, { stepCriteria });
+    await expect(runner.run()).rejects.toThrow(SystemExit);
+
+    // First try + 3 retries = 4 calls to generate
+    expect(callCount).toBe(4);
+  });
+
   it('should invoke evaluator and rework when evaluator returns REWORK', async () => {
     const manifest = createTestManifest({
       agents: [

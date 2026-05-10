@@ -80,7 +80,7 @@ describe('Supervisor — Quality Gate', () => {
       expect(result).toBe(SupervisorDecision.ESCALATE);
     });
 
-    it('should return REWORK when retry count equals max retries (not yet exceeded)', () => {
+    it('should return ESCALATE when retry count equals max retries (>= semantics)', () => {
       const input: SupervisorInput = {
         output: 'hi',
         retryCount: 3,
@@ -89,7 +89,73 @@ describe('Supervisor — Quality Gate', () => {
       };
 
       const result = Supervisor.evaluate(input);
+      expect(result).toBe(SupervisorDecision.ESCALATE);
+    });
+
+    it('should return REWORK when retries not yet exceeded (retryCount < maxRetries)', () => {
+      const input: SupervisorInput = {
+        output: 'hi',
+        retryCount: 2,
+        maxRetries: 3,
+        criteria: [passLength],
+      };
+
+      const result = Supervisor.evaluate(input);
       expect(result).toBe(SupervisorDecision.REWORK);
+    });
+
+    // maxRetries semantics: maxRetries = extra attempts after first try
+    // maxRetries: 0 => exactly 1 attempt (first try only, no retries => retryCount:0 => ESCALATE)
+    describe('maxRetries semantics (extra attempts after first try)', () => {
+      it('should ESCALATE when maxRetries is 0 and retryCount is 0 (no retries allowed)', () => {
+        const result = Supervisor.evaluate({
+          output: 'anything',
+          retryCount: 0,
+          maxRetries: 0,
+          criteria: [{ description: 'fail', check: () => false }],
+        });
+        expect(result).toBe(SupervisorDecision.ESCALATE);
+      });
+
+      it('should REWORK when maxRetries is 1 and retryCount is 0 (still have retry budget)', () => {
+        const result = Supervisor.evaluate({
+          output: 'anything',
+          retryCount: 0,
+          maxRetries: 1,
+          criteria: [{ description: 'fail', check: () => false }],
+        });
+        expect(result).toBe(SupervisorDecision.REWORK);
+      });
+
+      it('should ESCALATE when maxRetries is 1 and retryCount is 1 (retry budget exhausted)', () => {
+        const result = Supervisor.evaluate({
+          output: 'anything',
+          retryCount: 1,
+          maxRetries: 1,
+          criteria: [{ description: 'fail', check: () => false }],
+        });
+        expect(result).toBe(SupervisorDecision.ESCALATE);
+      });
+
+      it('should REWORK when maxRetries is 3 and retryCount is 2 (still have retry budget)', () => {
+        const result = Supervisor.evaluate({
+          output: 'anything',
+          retryCount: 2,
+          maxRetries: 3,
+          criteria: [{ description: 'fail', check: () => false }],
+        });
+        expect(result).toBe(SupervisorDecision.REWORK);
+      });
+
+      it('should ESCALATE when maxRetries is 3 and retryCount is 3 (retry budget exhausted)', () => {
+        const result = Supervisor.evaluate({
+          output: 'anything',
+          retryCount: 3,
+          maxRetries: 3,
+          criteria: [{ description: 'fail', check: () => false }],
+        });
+        expect(result).toBe(SupervisorDecision.ESCALATE);
+      });
     });
 
     it('should return PROCEED when criteria list is empty', () => {

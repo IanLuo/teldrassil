@@ -145,6 +145,17 @@ export class WorkflowRunner {
         }
 
         if (decision === SupervisorDecision.REWORK) {
+          if (stepRetries >= maxStepRetries) {
+            this.getStateManager().append({
+              node_id: step.step,
+              status: 'failed',
+              worker_id: step.agent,
+              artifact_ref: null,
+            });
+            throw new SystemExit(
+              `Step '${step.step}' exceeded max retries (${maxStepRetries})`
+            );
+          }
           stepRetries++;
           this.getStateManager().append({
             node_id: step.step,
