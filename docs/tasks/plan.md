@@ -70,7 +70,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 8.8 **Docs:** Fix `IMemoryEngine` JSDoc (remove `@throws Unauthorized` since it returns `null`) and clean up `IVault` (remove or document the dead `injectCredential` method).
 
 ## Phase 9: Customer Feedback — Robustness & Integration Readiness
-* [⏳] 9.1 **Fix:** `LocalJsonStatePlugin.shutdown()` — snapshot without clearing state, then clear only in-memory fields. Add test for append→shutdown→new instance→history preserved.
+* [👁] 9.1 **Fix:** `LocalJsonStatePlugin.shutdown()` — snapshot without clearing state, then clear only in-memory fields. Add test for append→shutdown→new instance→history preserved.
 * [ ] 9.2 **Fix:** Retry limit semantics. Enforce `retryCount >= maxRetries` in Supervisor/WorkflowRunner **before** worker execution. `maxRetries` = extra attempts after first try. Add tests for `maxRetries: 0`, `1`, and `3`.
 * [ ] 9.3 **Fix:** Replace evaluator substring parsing (`evalOutput.includes('REWORK')`) with structured output contract. Require `decision: PROCEED | REWORK | BLOCK` in evaluator response. Default to `REWORK` on malformed output. Log full evaluator output to Trace.
 * [ ] 9.4 **Feature:** Extend `StepResult` with `outputRef` (MemoryURI), `traceRef`, `decision`, `retries`. Allow `SequenceStep` to declare input refs or dependency refs.
