@@ -33,6 +33,33 @@ sequence:
     max_retries: 2
 `;
 
+const sequenceWithInputRefsYaml = `
+project_id: "test_project"
+workflow: "supervised"
+
+plugins:
+  model_drivers:
+    - id: "anthropic_adapter"
+      type: "drivers.models.anthropic"
+
+agents:
+  - id: "senior_coder"
+    use_driver: "anthropic_adapter"
+    model: "claude-3-5-sonnet"
+    status: "auto"
+
+sequence:
+  - step: "analyze"
+    agent: "senior_coder"
+    max_retries: 1
+  - step: "implement"
+    agent: "senior_coder"
+    input_refs:
+      - "mem://v1/analyze"
+      - "mem://v1/spec"
+    max_retries: 2
+`;
+
 const missingDriverYaml = `
 project_id: "test_project"
 workflow: "supervised"
@@ -149,6 +176,15 @@ agents: []
 
     it('should throw SystemExit on invalid YAML syntax', () => {
       expect(() => ManifestParser.parse(invalidYaml)).toThrow(SystemExit);
+    });
+
+    it('should parse sequence step with input_refs field', () => {
+      const manifest = ManifestParser.parse(sequenceWithInputRefsYaml);
+      expect(manifest.sequence).toHaveLength(2);
+      expect(manifest.sequence[0].step).toBe('analyze');
+      expect(manifest.sequence[0].input_refs).toBeUndefined();
+      expect(manifest.sequence[1].step).toBe('implement');
+      expect(manifest.sequence[1].input_refs).toEqual(['mem://v1/analyze', 'mem://v1/spec']);
     });
 
     it('should throw SystemExit on schema validation failure', () => {

@@ -127,6 +127,8 @@ describe('WorkflowRunner', () => {
     expect(result.steps[0].decision).toBe(SupervisorDecision.PROCEED);
     expect(result.steps[0].retries).toBe(0);
     expect(result.steps[0].output).toBe('step output');
+    expect(result.steps[0].outputRef).toBeNull();
+    expect(result.steps[0].traceRef).toBeNull();
     // step 2: last, criteria empty → COMPLETE
     expect(result.steps[1].step).toBe('step_2');
     expect(result.steps[1].agent).toBe('agent_b');

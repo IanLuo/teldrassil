@@ -27,6 +27,8 @@ export interface StepResult {
   step: string;
   agent: string;
   output: string;
+  outputRef: string | null;
+  traceRef: string | null;
   decision: string;
   retries: number;
 }
@@ -238,6 +240,8 @@ export class WorkflowRunner {
         step: step.step,
         agent: step.agent,
         output,
+        outputRef: null,
+        traceRef: null,
         decision: decision!,
         retries: stepRetries,
       });

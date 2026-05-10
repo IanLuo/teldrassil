@@ -19,8 +19,9 @@ export const SequenceStepSchema = z.object({
   step: z.string(),
   agent: z.string(),
   evaluator: z.string().optional(),
-  on_failure: z.string().optional(),
   max_retries: z.number().optional(),
+  on_failure: z.string().optional(),
+  input_refs: z.array(z.string()).optional(),
 });
 
 export const ManifestSchema = z.object({
