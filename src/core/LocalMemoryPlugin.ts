@@ -32,6 +32,7 @@ export class LocalMemoryPlugin implements IMemoryEngine {
 
   private dek: Buffer;
   private store = new Map<string, StoredEntry>();
+  private keyMap = new Map<string, string>();
 
   constructor(dekBase64: string) {
     this.dek = crypto.createHash('sha256').update(dekBase64).digest();
@@ -39,7 +40,7 @@ export class LocalMemoryPlugin implements IMemoryEngine {
 
   initialize = (): void => {};
   ping = async (): Promise<boolean> => true;
-  shutdown = (): void => { this.store.clear(); };
+  shutdown = (): void => { this.store.clear(); this.keyMap.clear(); };
 
   put(key: string, payload: unknown, _metadata?: MemoryEntryMetadata): MemoryURI {
     const isBinary = Buffer.isBuffer(payload);
@@ -51,15 +52,21 @@ export class LocalMemoryPlugin implements IMemoryEngine {
 
     this.store.set(key, new StoredEntry(encrypted, iv, authTag, isBinary));
 
-    const sig = this.computeSignature(key);
-    return `mem://v1/${key}?sig=${sig}` as MemoryURI;
+    const safeKey = this.safeId(key);
+    this.keyMap.set(safeKey, key);
+
+    const sig = this.computeSignature(safeKey);
+    return `mem://v1/${safeKey}?sig=${sig}` as MemoryURI;
   }
 
   get(uri: MemoryURI): unknown {
     if (!this.validateSignature(uri)) return null;
 
-    const key = this.extractKey(uri);
-    const entry = this.store.get(key);
+    const safeKey = this.extractKey(uri);
+    const rawKey = this.keyMap.get(safeKey);
+    if (!rawKey) return null;
+
+    const entry = this.store.get(rawKey);
     if (!entry) return null;
 
     try {
@@ -82,6 +89,10 @@ export class LocalMemoryPlugin implements IMemoryEngine {
     } catch {
       return false;
     }
+  }
+
+  private safeId(key: string): string {
+    return crypto.createHash('sha256').update(key).digest('base64url').slice(0, 16);
   }
 
   private computeSignature(key: string): string {

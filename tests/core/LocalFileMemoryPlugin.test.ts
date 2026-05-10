@@ -157,6 +157,60 @@ describe('LocalFileMemoryPlugin', () => {
     });
   });
 
+  describe('URI opaque key', () => {
+    it('should not expose raw key in URI path', () => {
+      const plugin = createPlugin();
+      const uri = plugin.put('raw-key-should-not-leak', { data: 'secret' });
+      expect(uri).not.toContain('raw-key-should-not-leak');
+    });
+
+    it('should use opaque safe ID in URI path', () => {
+      const plugin = createPlugin();
+      const uri = plugin.put('my-key', 'data');
+      const pathSegment = uri.split('?sig=')[0].replace('mem://v1/', '');
+      expect(pathSegment).not.toBe('my-key');
+      expect(uri).toMatch(/^mem:\/\/v1\/[^/]+\?sig=/);
+    });
+
+    it('should generate consistent opaque IDs for the same raw key', () => {
+      const plugin = createPlugin();
+      const uri1 = plugin.put('repeat-key', 'data1');
+      const uri2 = plugin.put('repeat-key', 'data2');
+      const path1 = uri1.split('?sig=')[0].replace('mem://v1/', '');
+      const path2 = uri2.split('?sig=')[0].replace('mem://v1/', '');
+      expect(path1).toBe(path2);
+    });
+
+    it('should generate different opaque IDs for different raw keys', () => {
+      const plugin = createPlugin();
+      const uri1 = plugin.put('key-alpha', 'data1');
+      const uri2 = plugin.put('key-beta', 'data2');
+      const path1 = uri1.split('?sig=')[0].replace('mem://v1/', '');
+      const path2 = uri2.split('?sig=')[0].replace('mem://v1/', '');
+      expect(path1).not.toBe(path2);
+    });
+
+    it('should retrieve payload using opaque URI', () => {
+      const plugin = createPlugin();
+      const payload = { name: 'opaque-file-test' };
+      const uri = plugin.put('opaque-key', payload);
+      expect(plugin.get(uri)).toEqual(payload);
+    });
+
+    it('should still validate signature with opaque URI', () => {
+      const plugin = createPlugin();
+      const uri = plugin.put('signed-opaque', 'value');
+      expect(plugin.validateSignature(uri)).toBe(true);
+    });
+
+    it('should reject tampered opaque URI', () => {
+      const plugin = createPlugin();
+      const uri = plugin.put('tamper-test', 'secret');
+      const tampered = uri.replace(/sig=/, 'sig=tampered_') as MemoryURI;
+      expect(plugin.get(tampered)).toBeNull();
+    });
+  });
+
   describe('signature validation', () => {
     it('should return null for a URI with tampered signature', () => {
       const plugin = createPlugin();

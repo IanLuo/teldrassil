@@ -47,22 +47,26 @@ export class LocalFileMemoryPlugin implements IMemoryEngine {
       metadata,
     };
 
-    const safeKey = this.hashKey(key);
+    const opaqueKey = this.safeId(key);
     const sessionDir = path.join(this.memoryDir, this.sessionId);
     this.ensureDir(sessionDir);
 
-    const filePath = path.join(sessionDir, `${safeKey}.json`);
+    const filePath = path.join(sessionDir, `${opaqueKey}.json`);
     fs.writeFileSync(filePath, JSON.stringify(entry), 'utf8');
 
-    const sig = this.computeSignature(key);
-    return `mem://v1/${key}?sig=${sig}` as MemoryURI;
+    const sig = this.computeSignature(opaqueKey);
+    return `mem://v1/${opaqueKey}?sig=${sig}` as MemoryURI;
   }
 
   get(uri: MemoryURI): unknown {
     if (!this.validateSignature(uri)) return null;
 
-    const key = this.extractKey(uri);
-    const entry = this.loadEntry(key);
+    const opaqueKey = this.extractKey(uri);
+    const filePath = path.join(this.memoryDir, this.sessionId, `${opaqueKey}.json`);
+
+    if (!fs.existsSync(filePath)) return null;
+
+    const entry = this.loadEntryFile(filePath);
     if (!entry) return null;
 
     try {
@@ -91,12 +95,7 @@ export class LocalFileMemoryPlugin implements IMemoryEngine {
     }
   }
 
-  private loadEntry(key: string): StoredEntry | null {
-    const safeKey = this.hashKey(key);
-    const filePath = path.join(this.memoryDir, this.sessionId, `${safeKey}.json`);
-
-    if (!fs.existsSync(filePath)) return null;
-
+  private loadEntryFile(filePath: string): StoredEntry | null {
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
       return JSON.parse(raw) as StoredEntry;
@@ -105,8 +104,8 @@ export class LocalFileMemoryPlugin implements IMemoryEngine {
     }
   }
 
-  private hashKey(key: string): string {
-    return crypto.createHash('sha256').update(key).digest('hex');
+  private safeId(key: string): string {
+    return crypto.createHash('sha256').update(key).digest('base64url').slice(0, 16);
   }
 
   private computeSignature(key: string): string {

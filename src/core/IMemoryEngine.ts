@@ -10,8 +10,10 @@
  */
 
 /**
- * A Memory Engine URI with an embedded HMAC signature.
- * Format: mem://v1/<key>?sig=<hmac>
+ * Memory URI format: mem://v1/${safeKey}?sig=${hmac}
+ * - safeKey: opaque identifier (base64url-encoded hash of the raw key)
+ * - sig: HMAC signature over the URI for integrity verification
+ * The URI path is opaque — callers MUST NOT parse or interpret the path.
  *
  * Agents can only access data via valid signed pointers —
  * guessing or forging URIs is rejected by validateSignature().
