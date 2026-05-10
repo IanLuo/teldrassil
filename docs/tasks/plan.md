@@ -83,4 +83,4 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 9.11 **Clarify:** BLOCK vs ESCALATE semantics in WorkflowRunner. ESCALATE (retry budget exhausted) routes through policy, not always throwing. BLOCK (missing input/context) requires intervention.
 * [x] 9.12 **Feature:** Make Human Attach resumable. Persist `HumanInputRequest` to State Manager (<4KB pointer-only, referable by `traceRef` to full Trace Log context). On startup, runner detects pending request and resumes waiting.
 * [x] 9.13 **Docs:** Update README to reflect Phase 7/8 reality — `UnifiedModelDriver` over `AnthropicDriver`, 5 vital plugins including Trace, `HostFunctionDriver` integration example, driver-by-ID registration.
-* [⏳] 9.14 **Docs:** Add Binary Supervisor example to docs — Evaluator writes `GateFinding[]` to Trace, returns binary decision, Supervisor consumes only decision, WorkflowRunner records `RouteDecision` to Trace.
+* [👁] 9.14 **Docs:** Add Binary Supervisor example to docs — Evaluator writes `GateFinding[]` to Trace, returns binary decision, Supervisor consumes only decision, WorkflowRunner records `RouteDecision` to Trace.
