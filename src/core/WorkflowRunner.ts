@@ -38,6 +38,13 @@ export interface WorkflowResult {
   finalDecision: string;
 }
 
+export interface WorkflowRunnerHooks {
+  buildMessages?: (step: SequenceStep, agent: AgentConfig, context?: Record<string, unknown>) => Message[];
+  afterStep?: (step: SequenceStep, result: StepResult) => void;
+  evaluateOutput?: (step: SequenceStep, output: string) => SupervisorDecision | null;
+  onDecision?: (decision: SupervisorDecision, step: SequenceStep) => void;
+}
+
 export interface WorkflowRunnerOptions {
   /** Criteria applied to every step during Supervisor.evaluate() */
   stepCriteria?: Array<{
@@ -46,17 +53,21 @@ export interface WorkflowRunnerOptions {
   }>;
   /** Force isBlocked=true in SupervisorInput (for testing / human-attach integration) */
   isBlocked?: boolean;
+  /** Host-overridable hooks for customizing runner behaviour */
+  hooks?: WorkflowRunnerHooks;
 }
 
 export class WorkflowRunner {
   private manifest: Manifest;
   private kernel: MicroKernel;
   private options: WorkflowRunnerOptions;
+  private hooks: WorkflowRunnerHooks;
 
   constructor(manifest: Manifest, kernel: MicroKernel, options?: WorkflowRunnerOptions) {
     this.manifest = manifest;
     this.kernel = kernel;
     this.options = options ?? {};
+    this.hooks = options?.hooks ?? {};
   }
 
   async run(): Promise<WorkflowResult> {
@@ -88,7 +99,8 @@ export class WorkflowRunner {
           artifact_ref: null,
         });
 
-        const messages = this.buildMessages(step, agent);
+        const buildMessagesFn = this.hooks.buildMessages ?? this.defaultBuildMessages.bind(this);
+        const messages = buildMessagesFn(step, agent);
         const result = await driver.generate({
           model: agent.model,
           messages,
@@ -98,7 +110,14 @@ export class WorkflowRunner {
         output = result.content;
 
         let evaluatorDecision: string | null = null;
-        if (step.evaluator) {
+        if (this.hooks.evaluateOutput) {
+          const hookDecision = this.hooks.evaluateOutput(step, output);
+          if (hookDecision !== null) {
+            evaluatorDecision = hookDecision === SupervisorDecision.REWORK ? 'REWORK' :
+                                hookDecision === SupervisorDecision.BLOCK ? 'BLOCK' : 'PROCEED';
+          }
+        }
+        if (evaluatorDecision === null && step.evaluator) {
           const evalAgent = this.resolveAgent(step.evaluator);
           const evalDriver = this.getDriver(evalAgent.use_driver);
 
@@ -146,6 +165,8 @@ export class WorkflowRunner {
         if (evaluatorDecision === 'BLOCK' && (decision === SupervisorDecision.PROCEED || decision === SupervisorDecision.COMPLETE)) {
           decision = SupervisorDecision.BLOCK;
         }
+
+        (this.hooks.onDecision ?? (() => {}))(decision, step);
 
         await recordRouteDecision(this.getTraceLog(), {
           from: step.step,
@@ -246,6 +267,8 @@ export class WorkflowRunner {
         retries: stepRetries,
       });
 
+      (this.hooks.afterStep ?? (() => {}))(step, results[results.length - 1]);
+
       this.getStateManager().snapshot();
 
       if (decision === SupervisorDecision.COMPLETE) {
@@ -290,7 +313,7 @@ export class WorkflowRunner {
     return agent;
   }
 
-  private buildMessages(step: SequenceStep, agent: AgentConfig): Message[] {
+  private defaultBuildMessages(step: SequenceStep, agent: AgentConfig, _context?: Record<string, unknown>): Message[] {
     return [
       {
         role: 'system',

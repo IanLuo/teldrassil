@@ -643,6 +643,263 @@ describe('WorkflowRunner', () => {
   });
 
   // 13. Evaluator returning PROCEED (structured format)
+  // ---- Hook tests ----
+
+  it('should use custom buildMessages hook to override default messages', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'custom_msgs', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let capturedMessages: Message[] = [];
+    const driver = createTestDriver(async (opts) => {
+      capturedMessages = opts.messages;
+      return { content: 'output' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const customBuildMessages = vi.fn((step, agent, _context) => [
+      { role: 'system', content: `CUSTOM: agent=${agent.id}, step=${step.step}` },
+      { role: 'user', content: 'Custom prompt' },
+    ]);
+
+    const runner = new WorkflowRunner(manifest, kernel, {
+      hooks: { buildMessages: customBuildMessages },
+    });
+    await runner.run();
+
+    expect(customBuildMessages).toHaveBeenCalledTimes(1);
+    const callArgs = customBuildMessages.mock.calls[0];
+    expect(callArgs[0]).toMatchObject({ step: 'custom_msgs' });
+    expect(callArgs[1]).toMatchObject({ id: 'agent_a' });
+    expect(callArgs[2]).toBeUndefined();
+    expect(capturedMessages).toHaveLength(2);
+    expect(capturedMessages[0].content).toContain('CUSTOM');
+    expect(capturedMessages[1].content).toBe('Custom prompt');
+  });
+
+  it('should call afterStep hook with step and result after each step', async () => {
+    const manifest = createTestManifest({
+      sequence: [
+        { step: 'step_a', agent: 'agent_a', max_retries: 1 },
+        { step: 'step_b', agent: 'agent_b', max_retries: 1 },
+      ],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      return { content: `output ${callCount}` };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const afterStep = vi.fn();
+    const runner = new WorkflowRunner(manifest, kernel, {
+      hooks: { afterStep },
+    });
+    await runner.run();
+
+    expect(afterStep).toHaveBeenCalledTimes(2);
+    expect(afterStep).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ step: 'step_a' }),
+      expect.objectContaining({ step: 'step_a', agent: 'agent_a', output: 'output 1' }),
+    );
+    expect(afterStep).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ step: 'step_b' }),
+      expect.objectContaining({ step: 'step_b', agent: 'agent_b', output: 'output 2' }),
+    );
+  });
+
+  it('should call afterStep with retry count after rework', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'rework_step', agent: 'agent_a', max_retries: 3 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      if (callCount === 1) return { content: 'bad' };
+      return { content: 'good enough output' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const stepCriteria = [
+      { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+    ];
+
+    const afterStep = vi.fn();
+    const runner = new WorkflowRunner(manifest, kernel, {
+      stepCriteria,
+      hooks: { afterStep },
+    });
+    await runner.run();
+
+    // afterStep called once — only when step succeeds (COMPLETE)
+    expect(afterStep).toHaveBeenCalledTimes(1);
+    expect(afterStep).toHaveBeenCalledWith(
+      expect.objectContaining({ step: 'rework_step' }),
+      expect.objectContaining({ retries: 1, decision: SupervisorDecision.COMPLETE }),
+    );
+  });
+
+  it('should use evaluateOutput hook to replace evaluator agent', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' },
+      ],
+      sequence: [
+        { step: 'hook_eval', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 2 },
+      ],
+    });
+    const kernel = createMicroKernel();
+
+    let evaluatorCalled = false;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        evaluatorCalled = true;
+        return { content: 'decision: PROCEED' };
+      }
+      return { content: 'agent output' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    let evalHookCalls = 0;
+    const evaluateOutput = vi.fn((_step, _output) => {
+      evalHookCalls++;
+      if (evalHookCalls === 1) return SupervisorDecision.REWORK;
+      return SupervisorDecision.PROCEED;
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, {
+      hooks: { evaluateOutput },
+    });
+    const result = await runner.run();
+
+    // Evaluator agent should NOT be called — hook replaced it
+    expect(evaluatorCalled).toBe(false);
+    expect(evaluateOutput).toHaveBeenCalledTimes(2);
+    expect(evaluateOutput).toHaveBeenCalledWith(
+      expect.objectContaining({ step: 'hook_eval' }),
+      'agent output',
+    );
+
+    // Hook returned REWORK then PROCEED, step has max_retries=2 → one retry
+    expect(result.steps[0].retries).toBe(1);
+  });
+
+  it('should fall through to evaluator when evaluateOutput returns null', async () => {
+    const manifest = createTestManifest({
+      agents: [
+        { id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' },
+        { id: 'evaluator_agent', use_driver: 'test_driver', model: 'test:evaluator', status: 'auto' },
+      ],
+      sequence: [
+        { step: 'fallback_eval', agent: 'agent_a', evaluator: 'evaluator_agent', max_retries: 1 },
+      ],
+    });
+    const kernel = createMicroKernel();
+
+    let evaluatorCalled = false;
+    const driver = createTestDriver(async (opts) => {
+      if (opts.model === 'test:evaluator') {
+        evaluatorCalled = true;
+        return { content: 'decision: PROCEED' };
+      }
+      return { content: 'agent output' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const evaluateOutput = vi.fn((_step, _output) => null);
+
+    const runner = new WorkflowRunner(manifest, kernel, {
+      hooks: { evaluateOutput },
+    });
+    await runner.run();
+
+    // Evaluator agent SHOULD be called — hook returned null
+    expect(evaluatorCalled).toBe(true);
+    expect(evaluateOutput).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onDecision hook on each routing decision', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'dec_step', agent: 'agent_a', max_retries: 3 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      if (callCount === 1) return { content: 'short' };
+      return { content: 'good enough output here' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const stepCriteria = [
+      { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+    ];
+
+    const onDecision = vi.fn();
+    const runner = new WorkflowRunner(manifest, kernel, {
+      stepCriteria,
+      hooks: { onDecision },
+    });
+    await runner.run();
+
+    // Called twice: once for REWORK, once for COMPLETE
+    expect(onDecision).toHaveBeenCalledTimes(2);
+    expect(onDecision).toHaveBeenNthCalledWith(
+      1,
+      SupervisorDecision.REWORK,
+      expect.objectContaining({ step: 'dec_step' }),
+    );
+    expect(onDecision).toHaveBeenNthCalledWith(
+      2,
+      SupervisorDecision.COMPLETE,
+      expect.objectContaining({ step: 'dec_step' }),
+    );
+  });
+
+  it('should work with no hooks provided (default behavior unchanged)', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'no_hook_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'output' }));
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    // No hooks passed at all
+    const runner = new WorkflowRunner(manifest, kernel);
+    const result = await runner.run();
+
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+  });
+
   it('should invoke evaluator and proceed when evaluator returns structured PROCEED', async () => {
     const manifest = createTestManifest({
       agents: [
