@@ -73,7 +73,7 @@ This document contains the detailed breakdown of all tasks required to build Tel
 * [x] 9.1 **Fix:** `LocalJsonStatePlugin.shutdown()` — snapshot without clearing state, then clear only in-memory fields. Add test for append→shutdown→new instance→history preserved.
 * [x] 9.2 **Fix:** Retry limit semantics. Enforce `retryCount >= maxRetries` in Supervisor/WorkflowRunner **before** worker execution. `maxRetries` = extra attempts after first try. Add tests for `maxRetries: 0`, `1`, and `3`.
 * [x] 9.3 **Fix:** Replace evaluator substring parsing (`evalOutput.includes('REWORK')`) with structured output contract. Require `decision: PROCEED | REWORK | BLOCK` in evaluator response. Default to `REWORK` on malformed output. Log full evaluator output to Trace.
-* [👁] 9.4 **Feature:** Extend `StepResult` with `outputRef` (MemoryURI), `traceRef`, `decision`, `retries`. Allow `SequenceStep` to declare input refs or dependency refs.
+* [x] 9.4 **Feature:** Extend `StepResult` with `outputRef` (MemoryURI), `traceRef`, `decision`, `retries`. Allow `SequenceStep` to declare input refs or dependency refs.
 * [ ] 9.5 **Feature:** Add host-overridable hooks to WorkflowRunner: `buildMessages(step, agent, context)`, `afterStep(step, result)`, `evaluateOutput(step, output)`, `onDecision(decision, step)`. Runner provides sensible defaults for all four.
 * [ ] 9.6 **Feature:** Add `TraceEnvelope` standard metadata wrapper (`traceId`, `sessionId`, `nodeId`, `type`, `timestamp`, `payload`) to all trace entries. Keep `payload` generic.
 * [ ] 9.7 **Fix:** Trace corruption recovery. On corrupted trace file, rename to `trace.corrupt.<timestamp>.json`, start fresh trace, append recovery event.
