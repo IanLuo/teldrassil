@@ -22,6 +22,8 @@ export interface HumanInputRequest {
   choices?: string[];
   /** The raw output from the blocked step */
   output: string;
+  /** Reference to the full request context in TraceLog */
+  traceRef?: string;
 }
 
 export interface HumanInputResult {

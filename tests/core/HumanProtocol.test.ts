@@ -81,4 +81,16 @@ describe('HumanProtocol types (type contract)', () => {
     expect(resultForA.requestId).toBe(req1.requestId);
     expect(resultForA.requestId).not.toBe(req2.requestId);
   });
+
+  it('HumanInputRequest should support optional traceRef for TraceLog reference', () => {
+    const req: HumanInputRequest = {
+      requestId: 'req-004',
+      step: 'blocked_step',
+      agent: 'agent_a',
+      prompt: 'Review this',
+      output: 'output',
+      traceRef: 'trace://v1/00042',
+    };
+    expect(req.traceRef).toBe('trace://v1/00042');
+  });
 });

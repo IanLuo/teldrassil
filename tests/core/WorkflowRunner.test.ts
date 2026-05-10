@@ -1483,4 +1483,302 @@ describe('WorkflowRunner', () => {
     const runner = new WorkflowRunner(manifest, kernel);
     await expect(runner.run()).rejects.toThrow(/not found|not registered/i);
   });
+
+  // ---- 21. Human Attach resumability ----
+
+  it('should persist HumanInputRequest to State Manager with awaiting_human status on BLOCK', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'blocked_resume', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'blocked output' }));
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    // Subscribe to human:required and respond with proceed
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    await runner.run();
+
+    const history = stateManager.getHistory();
+    const awaitingEntry = history.find((e) => e.status === 'awaiting_human');
+    expect(awaitingEntry).toBeDefined();
+    expect(awaitingEntry!.node_id).toBe('blocked_resume');
+    expect(awaitingEntry!.worker_id).toBe('agent_a');
+    expect(awaitingEntry!.artifact_ref).toMatch(/^req-/);
+  });
+
+  it('should store full HumanInputRequest context in TraceLog on BLOCK', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'trace_block', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'trace blocked output' }));
+    const traceLog = createInMemoryTraceLog();
+    const appendTraceSpy = vi.spyOn(traceLog, 'appendTrace');
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(traceLog);
+
+    // Subscribe to human:required and respond with proceed
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    await runner.run();
+
+    const customTraces = appendTraceSpy.mock.calls.filter(call => {
+      const env = call[0] as TraceEnvelope;
+      return env.type === 'custom';
+    });
+    expect(customTraces.length).toBe(1);
+    const customEnvelope = customTraces[0][0] as TraceEnvelope;
+    expect(customEnvelope.nodeId).toBe('trace_block');
+    const payload = customEnvelope.payload as Record<string, unknown>;
+    expect(payload.requestId).toMatch(/^req-/);
+    expect(payload.step).toBe('trace_block');
+    expect(payload.agent).toBe('agent_a');
+    expect(payload.output).toBe('trace blocked output');
+  });
+
+  it('should include traceRef in HumanInputRequest on BLOCK', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'traceref_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'traceref output' }));
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const requests: HumanInputRequest[] = [];
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest;
+      requests.push(request);
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    await runner.run();
+
+    expect(requests.length).toBe(1);
+    expect(requests[0].traceRef).toBeDefined();
+    expect(requests[0].traceRef).toMatch(/^trace:\/\/v1\//);
+  });
+
+  it('should resume pending human request via resumeIfPending() after simulated crash', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'resume_step', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const driver = createTestDriver(async () => ({ content: 'resume output' }));
+    const stateManager = createInMemoryStateManager();
+    const traceLog = createInMemoryTraceLog();
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(traceLog);
+
+    // Simulate a previous crash: manually append awaiting_human state entry
+    const pendingRequestId = 'req-12345';
+    stateManager.append({
+      node_id: 'resume_step',
+      status: 'awaiting_human',
+      worker_id: 'agent_a',
+      artifact_ref: pendingRequestId,
+    });
+
+    // Set up human response that will be picked up during resume
+    let resumed = false;
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest & { requestId: string };
+      resumed = request.requestId === pendingRequestId;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    const didResume = await runner.resumeIfPending();
+    expect(didResume).toBe(true);
+    expect(resumed).toBe(true);
+
+    // After resume, the state should be cleaned up (result added with completed status)
+    const history = stateManager.getHistory();
+    expect(history.some((e) => e.status === 'completed')).toBe(true);
+  });
+
+  it('should not resume when no pending human request exists', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'no_resume', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    kernel.getRegistry().register(createInMemoryStateManager());
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    const didResume = await runner.resumeIfPending();
+    expect(didResume).toBe(false);
+  });
+
+  it('should call resumeIfPending() automatically at the start of run()', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'auto_resume', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(createTestDriver(async () => ({ content: 'auto resume output' })));
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    // Simulate crash with pending human request state
+    const pendingRequestId = 'req-auto-resume';
+    stateManager.append({
+      node_id: 'auto_resume',
+      status: 'awaiting_human',
+      worker_id: 'agent_a',
+      artifact_ref: pendingRequestId,
+    });
+
+    let resumeCalled = false;
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest & { requestId: string };
+      resumeCalled = request.requestId === pendingRequestId;
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'proceed',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    const result = await runner.run();
+    // Should have detected the pending request, resumed, and completed
+    expect(resumeCalled).toBe(true);
+    expect(result.steps).toHaveLength(1);
+    expect(result.steps[0].decision).toBe(SupervisorDecision.COMPLETE);
+  });
+
+  it('should handle abort action during resumeIfPending()', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'resume_abort', agent: 'agent_a', max_retries: 1 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const stateManager = createInMemoryStateManager();
+    kernel.getRegistry().register(createTestDriver(async () => ({ content: 'abort resume' })));
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const pendingRequestId = 'req-abort';
+    stateManager.append({
+      node_id: 'resume_abort',
+      status: 'awaiting_human',
+      worker_id: 'agent_a',
+      artifact_ref: pendingRequestId,
+    });
+
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest & { requestId: string };
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'abort',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, { isBlocked: true, stepCriteria: [] });
+    await expect(runner.resumeIfPending()).rejects.toThrow(SystemExit);
+    await expect(runner.resumeIfPending()).rejects.toThrow(/aborted by human operator/);
+  });
+
+  it('should handle rework action during resumeIfPending()', async () => {
+    const manifest = createTestManifest({
+      sequence: [{ step: 'resume_rework', agent: 'agent_a', max_retries: 3 }],
+      agents: [{ id: 'agent_a', use_driver: 'test_driver', model: 'test:model-a', status: 'auto' }],
+    });
+    const kernel = createMicroKernel();
+
+    const stateManager = createInMemoryStateManager();
+    let callCount = 0;
+    const driver = createTestDriver(async () => {
+      callCount++;
+      if (callCount === 1) return { content: 'first try' };
+      return { content: 'good enough output here' };
+    });
+    kernel.getRegistry().register(driver);
+    kernel.getRegistry().register(stateManager);
+    kernel.getRegistry().register(createInMemoryTraceLog());
+
+    const pendingRequestId = 'req-rework';
+    stateManager.append({
+      node_id: 'resume_rework',
+      status: 'awaiting_human',
+      worker_id: 'agent_a',
+      artifact_ref: pendingRequestId,
+    });
+
+    // Human says rework on resume, causing retry
+    kernel.getEventBus().subscribe('human:required', (payload: unknown) => {
+      const request = payload as HumanInputRequest & { requestId: string };
+      setTimeout(() => {
+        kernel.getEventBus().publish('human:response', {
+          requestId: request.requestId,
+          action: 'rework',
+        } as HumanInputResult);
+      }, 0);
+    });
+
+    const runner = new WorkflowRunner(manifest, kernel, {
+      isBlocked: true,
+      stepCriteria: [
+        { description: 'output must be at least 10 chars', check: (out: string) => out.length >= 10 },
+      ],
+    });
+    const didResume = await runner.resumeIfPending();
+    expect(didResume).toBe(true);
+
+    const history = stateManager.getHistory();
+    expect(history.some((e) => e.status === 'rework')).toBe(true);
+  });
 });

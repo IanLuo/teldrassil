@@ -17,7 +17,7 @@ export interface StateEntry {
   /** The DAG node ID this entry corresponds to */
   node_id: string;
   /** Node execution status */
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'rework';
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'rework' | 'awaiting_human';
   /** The worker (agent) that processed this node */
   worker_id: string;
   /**

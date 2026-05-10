@@ -73,6 +73,24 @@ export class WorkflowRunner {
   }
 
   async run(): Promise<WorkflowResult> {
+    const resumed = await this.resumeIfPending();
+    if (resumed) {
+      const results: StepResult[] = [{
+        step: this.getStateManager().getHistory().filter(e => e.status === 'completed').pop()?.node_id ?? 'resumed',
+        agent: '',
+        output: '',
+        outputRef: null,
+        traceRef: null,
+        decision: SupervisorDecision.COMPLETE,
+        retries: 0,
+      }];
+      this.kernel.getEventBus().publish('workflow:completed', {
+        steps: results,
+        finalDecision: SupervisorDecision.COMPLETE,
+      });
+      return { steps: results, finalDecision: SupervisorDecision.COMPLETE };
+    }
+
     const results: StepResult[] = [];
     const sequence = this.manifest.sequence ?? [];
     let decision: SupervisorDecision | null = null;
@@ -233,13 +251,21 @@ export class WorkflowRunner {
             output,
           };
 
+          const traceUri = this.getTraceLog().appendTrace(createTraceEnvelope(
+            'custom',
+            step.step,
+            this.manifest.project_id,
+            request,
+          ));
+          request.traceRef = traceUri;
+
           this.kernel.getEventBus().publish('human:required', request);
 
           this.getStateManager().append({
             node_id: step.step,
-            status: 'failed',
+            status: 'awaiting_human',
             worker_id: step.agent,
-            artifact_ref: null,
+            artifact_ref: requestId,
           });
 
           const humanResult = await this.waitForHumanResponse(requestId);
@@ -289,6 +315,42 @@ export class WorkflowRunner {
     });
 
     return { steps: results, finalDecision };
+  }
+
+  async resumeIfPending(): Promise<boolean> {
+    const history = this.getStateManager().getHistory();
+    const lastEntry = history[history.length - 1];
+
+    if (lastEntry?.status === 'awaiting_human' && lastEntry?.artifact_ref) {
+      const requestId = lastEntry.artifact_ref;
+      this.kernel.getEventBus().publish('human:required', { requestId });
+      const humanResult = await this.waitForHumanResponse(requestId);
+
+      if (humanResult.action === 'abort') {
+        throw new SystemExit(
+          `Step '${lastEntry.node_id}' aborted by human operator`
+        );
+      }
+
+      if (humanResult.action === 'rework') {
+        this.getStateManager().append({
+          node_id: lastEntry.node_id,
+          status: 'rework',
+          worker_id: lastEntry.worker_id,
+          artifact_ref: null,
+        });
+        return true;
+      }
+
+      this.getStateManager().append({
+        node_id: lastEntry.node_id,
+        status: 'completed',
+        worker_id: lastEntry.worker_id,
+        artifact_ref: null,
+      });
+      return true;
+    }
+    return false;
   }
 
   private waitForHumanResponse(requestId: string): Promise<HumanInputResult> {
