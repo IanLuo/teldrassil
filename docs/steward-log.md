@@ -44,6 +44,15 @@ Records what was NOT chosen and why. Design docs record what WAS chosen. Purpose
 **Why:** DAG implies no cycles, but the Supervisor Pattern includes rework loops (Worker → fail → back to Worker). "Supervised Workflow" accurately describes the quality-gated execution with retry feedback.
 **Revisit if:** We add a genuinely acyclic execution mode that excludes rework.
 
+## 2026-05-10: Phase 9 — Customer-Feedback Robustness & Integration Pass
+**Decision:** Adopt 13 of 15 customer-requested changes as Phase 9 tasks. Two items (#6 Step Context, #14 Workflow Hooks) are unified into host-overridable hooks on the WorkflowRunner. Four semantic choices locked in:
+- `maxRetries` = extra attempts after first try (enforce `retryCount >= maxRetries` before next execution).
+- Malformed evaluator output defaults to `REWORK`.
+- `HumanInputRequest` persisted to State Manager (<4KB) with `traceRef` to full Trace Log context; runner detects pending on restart.
+- `buildMessages`/`afterStep`/`evaluateOutput`/`onDecision` exposed as host-overridable hooks (unifies #6 context delivery + #14 extension points).
+**Why:** The planner backbone needs these fixes to be production-safe (shutdown persistence, retry correctness, evaluator parsing) and integration-ready (artifact refs, hooks, structured output, trace envelope, human-attach resumption). The 4 semantic choices eliminate ambiguity from the original feedback.
+**Revisit if:** The hook surface grows beyond 4 without clear justification; a 5th hook should require a fresh steward evaluation.
+
 ## 2026-05-02: Created project-steward skill
 **Decision:** Bundle change evaluation, design sync, task restructuring, challenge rules, and external solution discovery into a single `project-steward` skill rather than splitting across multiple skills.
 **Why:** All functions share a single dependency (deep project context). Splitting would cause drift, stale context, and duplication. The workflow is linear, not parallel.

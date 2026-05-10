@@ -61,7 +61,8 @@ The framework supports multiple "Strategy" plugins to dictate how agents interac
 ### 3.1 Supervised Workflow Mode
 Predictable, sequential workflows with quality-gated rework loops. 
 * **Workflow Runner:** The execution engine that loops through the manifest sequence, invokes drivers per agent, and handles retries.
-* **The Supervisor Pattern:** Sits between nodes. Evaluates worker output and returns a binary Quality Gate decision: **PROCEED** or **REWORK**. (Rich severity findings are logged to the Trace Log by the Evaluator).
+ * **The Supervisor Pattern:** Sits between nodes. Evaluates worker output and returns a binary Quality Gate decision: **PROCEED** or **REWORK**. (Rich severity findings are logged to the Trace Log by the Evaluator).
+ * **Host Hooks:** The WorkflowRunner exposes optional hooks (`buildMessages`, `afterStep`, `evaluateOutput`, `onDecision`) that the host app may override for step-level customization without forking the runner.
 
 ### 3.2 Autonomous Swarm Mode
 Goal-oriented execution. A "Planner" agent dynamically "hires" worker agents from the registry to accomplish a task without a predefined path.
@@ -76,7 +77,7 @@ To ensure future-proof stability, the framework unifies AI and Human interaction
 
 ### 4.1 Headless vs. Human-Attach
 * **Headless:** The system triggers an autonomous engine to perform work.
-* **Human-Attach:** The system pauses the DAG, preserves session state, and notifies a human via `HumanInputRequest`. 
+ * **Human-Attach:** The system pauses the DAG, persists a `HumanInputRequest` to the State Manager (<4KB, with a `traceRef` to full-context Trace Log entry), and notifies a human. On kernel restart, the runner detects a pending request and resumes waiting — human-attach survives process crashes.
 * **The Bridge:** Both actors work in a Shared Workspace. When the human finishes, the DAG resumes.
 
 ### 4.2 Proactive Memory
